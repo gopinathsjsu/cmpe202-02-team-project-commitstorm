@@ -1,0 +1,125 @@
+package com.campus.marketplace.controller;
+
+import com.campus.marketplace.dto.UserDTO;
+import com.campus.marketplace.entity.User;
+import com.campus.marketplace.service.UserService;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/api/users")
+@CrossOrigin(origins = "*")
+public class UserController {
+    
+    @Autowired
+    private UserService userService;
+    
+    @PostMapping
+    public ResponseEntity<UserDTO> createUser(@Valid @RequestBody UserDTO userDTO) {
+        User user = new User();
+        user.setName(userDTO.getName());
+        user.setEmail(userDTO.getEmail());
+        user.setRole(userDTO.getRole() != null ? userDTO.getRole() : User.UserRole.USER);
+        user.setStatus(userDTO.getStatus() != null ? userDTO.getStatus() : User.UserStatus.ACTIVE);
+        
+        User createdUser = userService.createUser(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new UserDTO(createdUser));
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<UserDTO> getUserById(@PathVariable String id) {
+        return userService.getUserById(id)
+                .map(user -> ResponseEntity.ok(new UserDTO(user)))
+                .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @GetMapping
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
+        List<UserDTO> users = userService.getAllUsers().stream()
+                .map(UserDTO::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(users);
+    }
+    
+    @GetMapping("/email/{email}")
+    public ResponseEntity<UserDTO> getUserByEmail(@PathVariable String email) {
+        return userService.getUserByEmail(email)
+                .map(user -> ResponseEntity.ok(new UserDTO(user)))
+                .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @GetMapping("/role/{role}")
+    public ResponseEntity<List<UserDTO>> getUsersByRole(@PathVariable User.UserRole role) {
+        List<UserDTO> users = userService.getUsersByRole(role).stream()
+                .map(UserDTO::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(users);
+    }
+    
+    @GetMapping("/status/{status}")
+    public ResponseEntity<List<UserDTO>> getUsersByStatus(@PathVariable User.UserStatus status) {
+        List<UserDTO> users = userService.getUsersByStatus(status).stream()
+                .map(UserDTO::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(users);
+    }
+    
+    @GetMapping("/search/name")
+    public ResponseEntity<List<UserDTO>> searchUsersByName(@RequestParam String name) {
+        List<UserDTO> users = userService.searchUsersByName(name).stream()
+                .map(UserDTO::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(users);
+    }
+    
+    @GetMapping("/search/email")
+    public ResponseEntity<List<UserDTO>> searchUsersByEmail(@RequestParam String email) {
+        List<UserDTO> users = userService.searchUsersByEmail(email).stream()
+                .map(UserDTO::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(users);
+    }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<UserDTO> updateUser(@PathVariable String id, @Valid @RequestBody UserDTO userDTO) {
+        return userService.getUserById(id)
+                .map(existingUser -> {
+                    existingUser.setName(userDTO.getName());
+                    existingUser.setEmail(userDTO.getEmail());
+                    existingUser.setRole(userDTO.getRole());
+                    existingUser.setStatus(userDTO.getStatus());
+                    
+                    User updatedUser = userService.updateUser(existingUser);
+                    return ResponseEntity.ok(new UserDTO(updatedUser));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<UserDTO> updateUserStatus(@PathVariable String id, @RequestParam User.UserStatus status) {
+        try {
+            User updatedUser = userService.updateUserStatus(id, status);
+            return ResponseEntity.ok(new UserDTO(updatedUser));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
+    
+    @GetMapping("/exists/email")
+    public ResponseEntity<Boolean> checkEmailExists(@RequestParam String email) {
+        boolean exists = userService.existsByEmail(email);
+        return ResponseEntity.ok(exists);
+    }
+}
