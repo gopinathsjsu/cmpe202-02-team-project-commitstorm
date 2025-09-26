@@ -26,6 +26,10 @@ public class User {
     @Column(name = "email", nullable = false, unique = true)
     private String email;
     
+    @NotBlank(message = "Password is required")
+    @Column(name = "password", nullable = false)
+    private String password;
+    
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
     private UserRole role = UserRole.USER;
@@ -101,6 +105,14 @@ public class User {
     
     public void setEmail(String email) {
         this.email = email;
+    }
+    
+    public String getPassword() {
+        return password;
+    }
+    
+    public void setPassword(String password) {
+        this.password = password;
     }
     
     public UserRole getRole() {
