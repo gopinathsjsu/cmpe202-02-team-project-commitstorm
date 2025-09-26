@@ -1,0 +1,83 @@
+package com.campus.marketplace.dto;
+
+import com.campus.marketplace.entity.User;
+
+public class AuthResponse {
+    
+    private String token;
+    private String type = "Bearer";
+    private String id;
+    private String name;
+    private String email;
+    private String role;
+    private String status;
+    
+    // Constructors
+    public AuthResponse() {}
+    
+    public AuthResponse(String token, User user) {
+        this.token = token;
+        this.id = user.getId();
+        this.name = user.getName();
+        this.email = user.getEmail();
+        this.role = user.getRole().toString();
+        this.status = user.getStatus().toString();
+    }
+    
+    // Getters and Setters
+    public String getToken() {
+        return token;
+    }
+    
+    public void setToken(String token) {
+        this.token = token;
+    }
+    
+    public String getType() {
+        return type;
+    }
+    
+    public void setType(String type) {
+        this.type = type;
+    }
+    
+    public String getId() {
+        return id;
+    }
+    
+    public void setId(String id) {
+        this.id = id;
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
+    public void setName(String name) {
+        this.name = name;
+    }
+    
+    public String getEmail() {
+        return email;
+    }
+    
+    public void setEmail(String email) {
+        this.email = email;
+    }
+    
+    public String getRole() {
+        return role;
+    }
+    
+    public void setRole(String role) {
+        this.role = role;
+    }
+    
+    public String getStatus() {
+        return status;
+    }
+    
+    public void setStatus(String status) {
+        this.status = status;
+    }
+}
