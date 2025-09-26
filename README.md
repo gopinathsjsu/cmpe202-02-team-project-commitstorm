@@ -135,8 +135,9 @@ backend/
 │   └── config/         # Configuration classes
 ├── src/main/resources/
 │   ├── application.yml  # Application configuration
-│   └── db/migration/   # Database migrations
-└── pom.xml             # Maven dependencies
+│       ├── migration/   # Database migrations
+│       └── testing/     # Database testing scripts
+└── pom.xml              # Maven dependencies
 ```
 
 ### Adding New Features
