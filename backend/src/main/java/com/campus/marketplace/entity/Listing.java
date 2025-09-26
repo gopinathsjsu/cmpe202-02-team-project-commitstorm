@@ -44,7 +44,7 @@ public class Listing {
     private Category category;
     
     @Enumerated(EnumType.STRING)
-    @Column(name = "condition", nullable = false)
+    @Column(name = "`condition`", nullable = false)
     private ItemCondition condition;
     
     @Column(name = "images", columnDefinition = "JSON")
