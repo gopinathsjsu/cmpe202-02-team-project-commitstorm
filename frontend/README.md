@@ -1,6 +1,6 @@
 # CampusMarket - Student Marketplace Landing Page
 
-A modern, responsive React landing page for CampusMarket - a student-only marketplace platform.
+A modern, responsive React landing page for Commit Storm Market - a student-only marketplace platform.
 
 ## Features
 
