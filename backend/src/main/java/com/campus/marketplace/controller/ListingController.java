@@ -20,6 +20,9 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Listing endpoints: CRUD, filters, search, and pagination.
+ */
 @RestController
 @RequestMapping("/api/listings")
 @CrossOrigin(origins = "*")
@@ -34,6 +37,11 @@ public class ListingController {
     @Autowired
     private CategoryService categoryService;
     
+    /**
+     * Create a listing.
+     * @param listingDTO sellerId, title, description, price, categoryId, condition, images, status
+     * @return 201 with ListingDTO
+     */
     @PostMapping
     public ResponseEntity<ListingDTO> createListing(@Valid @RequestBody ListingDTO listingDTO) {
         User seller = userService.getUserById(listingDTO.getSellerId())
@@ -56,6 +64,11 @@ public class ListingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(new ListingDTO(createdListing));
     }
     
+    /**
+     * Get listing by id.
+     * @param id listing id
+     * @return 200 with ListingDTO or 404 if not found
+     */
     @GetMapping("/{id}")
     public ResponseEntity<ListingDTO> getListingById(@PathVariable String id) {
         return listingService.getListingById(id)
@@ -63,6 +76,10 @@ public class ListingController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
+    /**
+     * List all listings.
+     * @return 200 with list of ListingDTO
+     */
     @GetMapping
     public ResponseEntity<List<ListingDTO>> getAllListings() {
         List<ListingDTO> listings = listingService.getAllListings().stream()
@@ -71,6 +88,11 @@ public class ListingController {
         return ResponseEntity.ok(listings);
     }
     
+    /**
+     * List listings by seller.
+     * @param sellerId seller id
+     * @return 200 with list of ListingDTO
+     */
     @GetMapping("/seller/{sellerId}")
     public ResponseEntity<List<ListingDTO>> getListingsBySeller(@PathVariable String sellerId) {
         List<ListingDTO> listings = listingService.getListingsBySeller(sellerId).stream()
@@ -79,6 +101,11 @@ public class ListingController {
         return ResponseEntity.ok(listings);
     }
     
+    /**
+     * List listings by category.
+     * @param categoryId category id
+     * @return 200 with list of ListingDTO
+     */
     @GetMapping("/category/{categoryId}")
     public ResponseEntity<List<ListingDTO>> getListingsByCategory(@PathVariable String categoryId) {
         List<ListingDTO> listings = listingService.getListingsByCategory(categoryId).stream()
@@ -87,6 +114,11 @@ public class ListingController {
         return ResponseEntity.ok(listings);
     }
     
+    /**
+     * List listings by status.
+     * @param status listing status
+     * @return 200 with list of ListingDTO
+     */
     @GetMapping("/status/{status}")
     public ResponseEntity<List<ListingDTO>> getListingsByStatus(@PathVariable Listing.ListingStatus status) {
         List<ListingDTO> listings = listingService.getListingsByStatus(status).stream()
@@ -95,6 +127,11 @@ public class ListingController {
         return ResponseEntity.ok(listings);
     }
     
+    /**
+     * List listings by item condition.
+     * @param condition condition enum
+     * @return 200 with list of ListingDTO
+     */
     @GetMapping("/condition/{condition}")
     public ResponseEntity<List<ListingDTO>> getListingsByCondition(@PathVariable Listing.ItemCondition condition) {
         List<ListingDTO> listings = listingService.getListingsByCondition(condition).stream()
@@ -103,6 +140,12 @@ public class ListingController {
         return ResponseEntity.ok(listings);
     }
     
+    /**
+     * List listings within price range.
+     * @param minPrice minimum price
+     * @param maxPrice maximum price
+     * @return 200 with list of ListingDTO
+     */
     @GetMapping("/price-range")
     public ResponseEntity<List<ListingDTO>> getListingsByPriceRange(
             @RequestParam BigDecimal minPrice, 
@@ -113,6 +156,11 @@ public class ListingController {
         return ResponseEntity.ok(listings);
     }
     
+    /**
+     * Search listings by term (title/description).
+     * @param searchTerm query text
+     * @return 200 with list of ListingDTO
+     */
     @GetMapping("/search")
     public ResponseEntity<List<ListingDTO>> searchListings(@RequestParam String searchTerm) {
         List<ListingDTO> listings = listingService.searchListings(searchTerm).stream()
@@ -121,6 +169,12 @@ public class ListingController {
         return ResponseEntity.ok(listings);
     }
     
+    /**
+     * List listings by seller and status.
+     * @param sellerId seller id
+     * @param status listing status
+     * @return 200 with list of ListingDTO
+     */
     @GetMapping("/seller/{sellerId}/status/{status}")
     public ResponseEntity<List<ListingDTO>> getListingsBySellerAndStatus(
             @PathVariable String sellerId, 
@@ -131,6 +185,14 @@ public class ListingController {
         return ResponseEntity.ok(listings);
     }
     
+    /**
+     * Page listings by category and status.
+     * @param categoryId category id
+     * @param status listing status
+     * @param page page number
+     * @param size page size
+     * @return 200 with Page of ListingDTO
+     */
     @GetMapping("/category/{categoryId}/status/{status}")
     public ResponseEntity<Page<ListingDTO>> getListingsByCategoryAndStatus(
             @PathVariable String categoryId, 
@@ -143,6 +205,13 @@ public class ListingController {
         return ResponseEntity.ok(listingDTOs);
     }
     
+    /**
+     * Page listings by status ordered by creation time desc.
+     * @param status listing status
+     * @param page page number
+     * @param size page size
+     * @return 200 with Page of ListingDTO
+     */
     @GetMapping("/status/{status}/page")
     public ResponseEntity<Page<ListingDTO>> getListingsByStatusOrderByCreatedAtDesc(
             @PathVariable Listing.ListingStatus status,
@@ -154,6 +223,13 @@ public class ListingController {
         return ResponseEntity.ok(listingDTOs);
     }
     
+    /**
+     * Page listings by seller ordered by creation time desc.
+     * @param sellerId seller id
+     * @param page page number
+     * @param size page size
+     * @return 200 with Page of ListingDTO
+     */
     @GetMapping("/seller/{sellerId}/page")
     public ResponseEntity<Page<ListingDTO>> getListingsBySellerOrderByCreatedAtDesc(
             @PathVariable String sellerId,
@@ -165,6 +241,12 @@ public class ListingController {
         return ResponseEntity.ok(listingDTOs);
     }
     
+    /**
+     * Update listing fields.
+     * @param id listing id
+     * @param listingDTO editable fields
+     * @return 200 with updated ListingDTO or 404 if not found
+     */
     @PutMapping("/{id}")
     public ResponseEntity<ListingDTO> updateListing(@PathVariable String id, @Valid @RequestBody ListingDTO listingDTO) {
         return listingService.getListingById(id)
@@ -188,6 +270,12 @@ public class ListingController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
+    /**
+     * Update listing status only.
+     * @param id listing id
+     * @param status new status
+     * @return 200 with updated ListingDTO or 404 if not found
+     */
     @PatchMapping("/{id}/status")
     public ResponseEntity<ListingDTO> updateListingStatus(@PathVariable String id, @RequestParam Listing.ListingStatus status) {
         try {
@@ -198,6 +286,11 @@ public class ListingController {
         }
     }
     
+    /**
+     * Delete listing.
+     * @param id listing id
+     * @return 204 No Content
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteListing(@PathVariable String id) {
         listingService.deleteListing(id);

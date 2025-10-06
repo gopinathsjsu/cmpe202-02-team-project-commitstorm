@@ -12,6 +12,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+/**
+ * Utility for creating, parsing, and validating JWT tokens.
+ */
 @Component
 public class JwtUtil {
     

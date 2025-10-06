@@ -21,6 +21,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 
+/**
+ * Spring Security configuration: stateless JWT auth, CORS, and endpoint access rules.
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -32,16 +35,25 @@ public class SecurityConfig {
     @Autowired
     private UserDetailsService userDetailsService;
     
+    /**
+     * Password encoder (BCrypt).
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
     
+    /**
+     * Expose AuthenticationManager from configuration.
+     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
     
+    /**
+     * Configure filter chain with JWT filter and access rules.
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -60,6 +72,9 @@ public class SecurityConfig {
         return http.build();
     }
     
+    /**
+     * CORS configuration allowing common methods and headers for all origins.
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

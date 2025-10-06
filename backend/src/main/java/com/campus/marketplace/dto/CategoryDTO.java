@@ -3,6 +3,9 @@ package com.campus.marketplace.dto;
 import com.campus.marketplace.entity.Category;
 import jakarta.validation.constraints.NotBlank;
 
+/**
+ * DTO for Category: used for requests/responses.
+ */
 public class CategoryDTO {
     
     private String id;
@@ -11,8 +14,13 @@ public class CategoryDTO {
     private String name;
     
     // Constructors
+    /** No-args constructor for serialization. */
     public CategoryDTO() {}
     
+    /**
+     * Map from Category entity to DTO.
+     * @param category source entity
+     */
     public CategoryDTO(Category category) {
         this.id = category.getId();
         this.name = category.getName();
