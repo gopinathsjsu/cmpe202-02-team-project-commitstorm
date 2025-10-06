@@ -8,6 +8,9 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * DTO for Listing: used for requests/responses.
+ */
 public class ListingDTO {
     
     private String id;
@@ -33,8 +36,13 @@ public class ListingDTO {
     private LocalDateTime updatedAt;
     
     // Constructors
+    /** No-args constructor for serialization. */
     public ListingDTO() {}
     
+    /**
+     * Map from Listing entity to DTO.
+     * @param listing source entity
+     */
     public ListingDTO(Listing listing) {
         this.id = listing.getId();
         this.sellerId = listing.getSeller().getId();

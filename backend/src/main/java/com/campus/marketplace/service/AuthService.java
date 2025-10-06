@@ -20,6 +20,11 @@ public class AuthService {
     @Autowired
     private PasswordEncoder passwordEncoder;
     
+    /**
+     * Register a new user.
+     * @param registerRequest name, email, password
+     * @return persisted User
+     */
     public User register(RegisterRequest registerRequest) {
         User user = new User();
         user.setId(UUID.randomUUID().toString());
@@ -32,6 +37,13 @@ public class AuthService {
         return userRepository.save(user);
     }
     
+    /**
+     * Authenticate user by email and password.
+     * @param email user email
+     * @param password raw password
+     * @return User if credentials valid and account active
+     * @throws RuntimeException if user not found, password invalid, or inactive
+     */
     public User authenticate(String email, String password) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -47,11 +59,22 @@ public class AuthService {
         return user;
     }
     
+    /**
+     * Get user by email or throw.
+     * @param email email
+     * @return User
+     * @throws RuntimeException if not found
+     */
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
     
+    /**
+     * Check if email exists.
+     * @param email email
+     * @return true if exists
+     */
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
     }
