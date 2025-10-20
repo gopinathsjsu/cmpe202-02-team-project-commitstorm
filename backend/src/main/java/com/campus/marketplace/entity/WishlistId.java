@@ -3,34 +3,35 @@ package com.campus.marketplace.entity;
 import java.io.Serializable;
 import java.util.Objects;
 
+//Composite key for Wishlist entity.
 public class WishlistId implements Serializable {
     
-    private String user;
-    private String listing;
+    private String userId;
+    private String listingId;
     
     // Constructors
     public WishlistId() {}
     
-    public WishlistId(String user, String listing) {
-        this.user = user;
-        this.listing = listing;
+    public WishlistId(String userId, String listingId) {
+        this.userId = userId;
+        this.listingId = listingId;
     }
     
     // Getters and Setters
-    public String getUser() {
-        return user;
+    public String getUserId() {
+        return userId;
     }
     
-    public void setUser(String user) {
-        this.user = user;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
     
-    public String getListing() {
-        return listing;
+    public String getListingId() {
+        return listingId;
     }
     
-    public void setListing(String listing) {
-        this.listing = listing;
+    public void setListingId(String listingId) {
+        this.listingId = listingId;
     }
     
     // Equals and HashCode
@@ -39,11 +40,19 @@ public class WishlistId implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         WishlistId that = (WishlistId) o;
-        return Objects.equals(user, that.user) && Objects.equals(listing, that.listing);
+        return Objects.equals(userId, that.userId) && Objects.equals(listingId, that.listingId);
     }
     
     @Override
     public int hashCode() {
-        return Objects.hash(user, listing);
+        return Objects.hash(userId, listingId);
+    }
+    
+    @Override
+    public String toString() {
+        return "WishlistId{" +
+                "userId='" + userId + '\'' +
+                ", listingId='" + listingId + '\'' +
+                '}';
     }
 }
