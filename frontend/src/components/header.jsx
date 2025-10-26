@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const Header = () => {
+const Header = ({ user, onLoginClick, onSignupClick, onLogout }) => {
   const [searchQuery, setSearchQuery] = useState('')
 
   return (
@@ -30,12 +30,36 @@ const Header = () => {
             
             {/* Auth Buttons */}
             <div className="flex items-center space-x-4">
-              <button className="border border-gray-300 text-gray-300 hover:text-white hover:border-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
-                Log In
-              </button>
-              <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
-                Sign Up
-              </button>
+              {user ? (
+                // Show user info and logout when authenticated
+                <div className="flex items-center space-x-4">
+                  <span className="text-gray-300 text-sm">
+                    Welcome, {user.name}!
+                  </span>
+                  <button 
+                    onClick={onLogout}
+                    className="border border-gray-300 text-gray-300 hover:text-white hover:border-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                // Show login/signup buttons when not authenticated
+                <>
+                  <button 
+                    onClick={onLoginClick}
+                    className="border border-gray-300 text-gray-300 hover:text-white hover:border-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Log In
+                  </button>
+                  <button 
+                    onClick={onSignupClick}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Sign Up
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
