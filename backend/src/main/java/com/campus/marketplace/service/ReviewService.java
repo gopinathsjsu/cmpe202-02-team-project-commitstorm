@@ -31,6 +31,7 @@ public class ReviewService {
      * Create a new review with validation.
      */
     public Review createReview(String transactionId, String reviewerId, String sellerId, Integer rating, String comment) {
+        // Validate that entities exist
         Optional<Transaction> transactionOpt = transactionRepository.findById(transactionId);
         Optional<User> reviewerOpt = userRepository.findById(reviewerId);
         Optional<User> sellerOpt = userRepository.findById(sellerId);
@@ -45,36 +46,44 @@ public class ReviewService {
             throw new RuntimeException("Seller not found with id: " + sellerId);
         }
         
-        // Check if transaction is completed
         Transaction transaction = transactionOpt.get();
+        User reviewer = reviewerOpt.get();
+        User seller = sellerOpt.get();
+        
+        // Validate transaction status (only completed transactions can be reviewed)
         if (transaction.getStatus() != Transaction.TransactionStatus.COMPLETED) {
             throw new RuntimeException("Cannot review incomplete transaction");
         }
         
-        // Check if review already exists for this transaction
-        if (reviewRepository.findByTransactionId(transactionId).isPresent()) {
-            throw new RuntimeException("Review already exists for this transaction");
-        }
-        
-        // Verify that the reviewer is the buyer
+        // Validate that reviewer is the buyer (only buyer can review)
         if (!transaction.getBuyer().getId().equals(reviewerId)) {
             throw new RuntimeException("Only the buyer can review this transaction");
         }
         
-        // Verify that the seller matches
-        if (!transaction.getListing().getSeller().getId().equals(sellerId)) {
+        // Validate seller matches the transaction's listing seller
+        String actualSellerId = transactionRepository.findSellerIdByTransactionId(transactionId);
+        if (actualSellerId == null || !actualSellerId.equals(sellerId)) {
             throw new RuntimeException("Seller ID does not match transaction");
         }
         
+        // Check for duplicate reviews (only one review per transaction)
+        if (reviewRepository.findByTransactionId(transactionId).isPresent()) {
+            throw new RuntimeException("Review already exists for this transaction");
+        }
+        
+        // Create and save review
         Review review = new Review();
         review.setId(UUID.randomUUID().toString());
         review.setTransaction(transaction);
-        review.setReviewer(reviewerOpt.get());
-        review.setSeller(sellerOpt.get());
+        review.setReviewer(reviewer);
+        review.setSeller(seller);
         review.setRating(rating);
         review.setComment(comment);
+
+        Review savedReview = reviewRepository.save(review);
         
-        return reviewRepository.save(review);
+        // Return the review with eagerly loaded relationships
+        return reviewRepository.findByIdWithDetails(savedReview.getId()).orElse(savedReview);
     }
     
     /**
@@ -95,7 +104,7 @@ public class ReviewService {
      * Get all reviews.
      */
     public List<Review> getAllReviews() {
-        return reviewRepository.findAll();
+        return reviewRepository.findAllWithDetails();
     }
     
     /**

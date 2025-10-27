@@ -13,35 +13,51 @@ import java.util.Optional;
 public interface ReviewRepository extends JpaRepository<Review, String> {
     
     /**
+     * Find all reviews with eager loading.
+     */
+    @Query("SELECT r FROM Review r LEFT JOIN FETCH r.transaction LEFT JOIN FETCH r.reviewer LEFT JOIN FETCH r.seller ORDER BY r.createdAt DESC")
+    List<Review> findAllWithDetails();
+    
+    /**
+     * Find a single review by ID with eager loading.
+     */
+    @Query("SELECT r FROM Review r LEFT JOIN FETCH r.transaction LEFT JOIN FETCH r.reviewer LEFT JOIN FETCH r.seller WHERE r.id = :id")
+    Optional<Review> findByIdWithDetails(@Param("id") String id);
+    
+    /**
      * Find reviews by reviewer ID.
      */
-    List<Review> findByReviewerId(String reviewerId);
+    @Query("SELECT r FROM Review r LEFT JOIN FETCH r.transaction LEFT JOIN FETCH r.reviewer LEFT JOIN FETCH r.seller WHERE r.reviewer.id = :reviewerId")
+    List<Review> findByReviewerId(@Param("reviewerId") String reviewerId);
     
     /**
      * Find reviews by seller ID.
      */
-    List<Review> findBySellerId(String sellerId);
+    @Query("SELECT r FROM Review r LEFT JOIN FETCH r.transaction LEFT JOIN FETCH r.reviewer LEFT JOIN FETCH r.seller WHERE r.seller.id = :sellerId")
+    List<Review> findBySellerId(@Param("sellerId") String sellerId);
     
     /**
      * Find reviews by rating.
      */
-    List<Review> findByRating(Integer rating);
+    @Query("SELECT r FROM Review r LEFT JOIN FETCH r.transaction LEFT JOIN FETCH r.reviewer LEFT JOIN FETCH r.seller WHERE r.rating = :rating")
+    List<Review> findByRating(@Param("rating") Integer rating);
     
     /**
      * Find review by transaction ID.
      */
-    Optional<Review> findByTransactionId(String transactionId);
+    @Query("SELECT r FROM Review r LEFT JOIN FETCH r.transaction LEFT JOIN FETCH r.reviewer LEFT JOIN FETCH r.seller WHERE r.transaction.id = :transactionId")
+    Optional<Review> findByTransactionId(@Param("transactionId") String transactionId);
     
     /**
      * Find reviews by seller ID ordered by creation date.
      */
-    @Query("SELECT r FROM Review r WHERE r.seller.id = :sellerId ORDER BY r.createdAt DESC")
+    @Query("SELECT r FROM Review r LEFT JOIN FETCH r.transaction LEFT JOIN FETCH r.reviewer LEFT JOIN FETCH r.seller WHERE r.seller.id = :sellerId ORDER BY r.createdAt DESC")
     List<Review> findBySellerIdOrderByCreatedAtDesc(@Param("sellerId") String sellerId);
     
     /**
      * Find reviews by reviewer ID ordered by creation date.
      */
-    @Query("SELECT r FROM Review r WHERE r.reviewer.id = :reviewerId ORDER BY r.createdAt DESC")
+    @Query("SELECT r FROM Review r LEFT JOIN FETCH r.transaction LEFT JOIN FETCH r.reviewer LEFT JOIN FETCH r.seller WHERE r.reviewer.id = :reviewerId ORDER BY r.createdAt DESC")
     List<Review> findByReviewerIdOrderByCreatedAtDesc(@Param("reviewerId") String reviewerId);
     
     /**
@@ -59,6 +75,6 @@ public interface ReviewRepository extends JpaRepository<Review, String> {
     /**
      * Find reviews by seller ID and rating ordered by creation date.
      */
-    @Query("SELECT r FROM Review r WHERE r.seller.id = :sellerId AND r.rating = :rating ORDER BY r.createdAt DESC")
+    @Query("SELECT r FROM Review r LEFT JOIN FETCH r.transaction LEFT JOIN FETCH r.reviewer LEFT JOIN FETCH r.seller WHERE r.seller.id = :sellerId AND r.rating = :rating ORDER BY r.createdAt DESC")
     List<Review> findBySellerIdAndRatingOrderByCreatedAtDesc(@Param("sellerId") String sellerId, @Param("rating") Integer rating);
 }

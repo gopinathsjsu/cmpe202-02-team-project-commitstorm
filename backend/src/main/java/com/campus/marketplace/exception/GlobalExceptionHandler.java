@@ -11,7 +11,6 @@ import org.springframework.web.context.request.WebRequest;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
-
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -56,10 +55,8 @@ public class GlobalExceptionHandler {
             Exception ex, WebRequest request) {
         Map<String, Object> response = new HashMap<>();
         
-        response.put("timestamp", LocalDateTime.now());
-        response.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        response.put("error", "Internal Server Error");
-        response.put("message", "An unexpected error occurred");
+        // Log the actual exception for debugging
+        ex.printStackTrace();
         response.put("path", request.getDescription(false).replace("uri=", ""));
         
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
