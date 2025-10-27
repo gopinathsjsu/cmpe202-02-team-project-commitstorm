@@ -29,4 +29,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, String
     
     @Query("SELECT t FROM Transaction t WHERE t.listing.seller.id = :sellerId AND t.status = :status ORDER BY t.createdAt DESC")
     List<Transaction> findBySellerIdAndStatusOrderByCreatedAtDesc(@Param("sellerId") String sellerId, @Param("status") Transaction.TransactionStatus status);
+    
+    @Query("SELECT l.seller.id FROM Transaction t JOIN t.listing l WHERE t.id = :transactionId")
+    String findSellerIdByTransactionId(@Param("transactionId") String transactionId);
 }
