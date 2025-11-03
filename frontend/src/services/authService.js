@@ -42,3 +42,17 @@ export const register = async ({ name, email, password }) => {
     };
   }
 };
+
+/**
+ * Logout user
+ * @returns {Promise<void>}
+ */
+export const logout = async () => {
+  try {
+    await apiClient.post('/api/auth/logout');
+  } catch (error) {
+    // Even if logout API fails, we should still clear local auth
+    console.error('Logout API error:', error);
+    // Don't throw - we still want to clear local state
+  }
+};

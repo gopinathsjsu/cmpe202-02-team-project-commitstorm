@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import {BrowserRouter, Route, Routes} from 'react-router';
+import {BrowserRouter, Route, Routes, useNavigate, useLocation} from 'react-router';
 import './css/App.css'
 import Header from './components/header'
 import Home from './components/home'
@@ -7,8 +7,11 @@ import { Marketplace } from './components/marketplace';
 import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';
 import { setAuthToken, clearAuthToken } from './services/apiClient';
+import { logout as logoutAPI } from './services/authService';
 
-function App() {
+function AppContent() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [showAuth, setShowAuth] = useState(null); // null, 'login', or 'signup'
   const [user, setUser] = useState(null);
 
@@ -36,23 +39,49 @@ function App() {
     return () => window.removeEventListener('auth:tokenExpired', handleTokenExpired);
   }, []);
 
-  const handleAuthSuccess = (userData) => {
+  const handleAuthSuccess = async (userData) => {
     setUser(userData);
     setShowAuth(null); // Close auth modal
     console.log('Authentication successful:', userData);
+    // Redirect to marketplace on successful login
+    navigate('/marketplace');
   };
 
-  const handleLogout = () => {
-    clearAuthToken();
-    localStorage.removeItem('auth.user');
-    setUser(null);
-    console.log('Logged out');
+  const handleLogout = async () => {
+    try {
+      // Call logout API
+      await logoutAPI();
+    } catch (error) {
+      console.error('Logout API error:', error);
+    } finally {
+      // Clear local auth state regardless of API call result
+      clearAuthToken();
+      localStorage.removeItem('auth.user');
+      localStorage.removeItem('auth.tokenType');
+      setUser(null);
+      console.log('Logged out');
+      // Redirect to home page
+      navigate('/');
+    }
   };
+
+  // Check if we're on home route (public)
+  const isHome = location.pathname === '/';
+
+  // Protect routes - redirect to home if not authenticated
+  useEffect(() => {
+    const isProtectedRoute = location.pathname !== '/';
+    const token = localStorage.getItem('auth.token');
+    if (isProtectedRoute && !user && !token) {
+      navigate('/');
+    }
+  }, [location.pathname, user, navigate]);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <Header 
         user={user} 
+        isHome={isHome}
         onLoginClick={() => setShowAuth('login')} 
         onSignupClick={() => setShowAuth('signup')}
         onLogout={handleLogout}
@@ -78,13 +107,19 @@ function App() {
         </div>
       )}
       
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}/>
-          <Route path="/marketplace" element={<Marketplace/>}/>
-        </Routes>
-      </BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />}/>
+        <Route path="/marketplace" element={<Marketplace/>}/>
+      </Routes>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
   );
 }
 

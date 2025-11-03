@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const Header = ({ user, onLoginClick, onSignupClick, onLogout }) => {
+const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout }) => {
   const [searchQuery, setSearchQuery] = useState('')
 
   return (
@@ -30,21 +30,8 @@ const Header = ({ user, onLoginClick, onSignupClick, onLogout }) => {
             
             {/* Auth Buttons */}
             <div className="flex items-center space-x-4">
-              {user ? (
-                // Show user info and logout when authenticated
-                <div className="flex items-center space-x-4">
-                  <span className="text-gray-300 text-sm">
-                    Welcome, {user.name}!
-                  </span>
-                  <button 
-                    onClick={onLogout}
-                    className="border border-gray-300 text-gray-300 hover:text-white hover:border-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-                  >
-                    Logout
-                  </button>
-                </div>
-              ) : (
-                // Show login/signup buttons when not authenticated
+              {isHome ? (
+                // On home page (/): Always show login/signup buttons (public route)
                 <>
                   <button 
                     onClick={onLoginClick}
@@ -59,6 +46,16 @@ const Header = ({ user, onLoginClick, onSignupClick, onLogout }) => {
                     Sign Up
                   </button>
                 </>
+              ) : (
+                // On protected routes (e.g., /marketplace): Show logout button if authenticated
+                user && (
+                  <button 
+                    onClick={onLogout}
+                    className="border border-gray-300 text-gray-300 hover:text-white hover:border-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Logout
+                  </button>
+                )
               )}
             </div>
           </div>

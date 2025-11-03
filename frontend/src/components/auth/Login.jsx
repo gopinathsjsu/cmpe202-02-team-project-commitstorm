@@ -67,8 +67,9 @@ const Login = ({ onAuthSuccess, onClose }) => {
         password: formData.password,
       });
       
-      // Store auth data
+      // Store auth data - token and type (Bearer)
       localStorage.setItem('auth.token', response.token);
+      localStorage.setItem('auth.tokenType', response.type || 'Bearer');
       localStorage.setItem('auth.user', JSON.stringify({
         id: response.id,
         name: response.name,
@@ -84,6 +85,7 @@ const Login = ({ onAuthSuccess, onClose }) => {
       if (onAuthSuccess) {
         onAuthSuccess({
           token: response.token,
+          type: response.type || 'Bearer',
           id: response.id,
           name: response.name,
           email: response.email,

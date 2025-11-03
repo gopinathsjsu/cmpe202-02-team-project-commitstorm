@@ -1,7 +1,17 @@
 import axios from 'axios';
 
 // Get base URL from environment variables
-const baseURL = import.meta.env.VITE_API_BASE_URL || import.meta.env.REACT_APP_API_BASE_URL || 'http://localhost:8080';
+// Direct connection to backend on localhost:8080
+const getBaseURL = () => {
+  // If VITE_API_BASE_URL is set, use it (allows override for different environments)
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  // Default to localhost:8080 for development and production fallback
+  return 'http://localhost:8080';
+};
+
+const baseURL = getBaseURL();
 
 // Create axios instance
 const apiClient = axios.create({
@@ -38,9 +48,9 @@ export const setAuthToken = (token) => {
 export const clearAuthToken = () => {
   authToken = null;
   localStorage.removeItem('auth.token');
+  localStorage.removeItem('auth.tokenType');
 };
 
-// Get current token (useful for debugging)
 export const getAuthToken = () => {
   return authToken;
 };
@@ -48,9 +58,18 @@ export const getAuthToken = () => {
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config) => {
-    if (authToken) {
-      config.headers.Authorization = `Bearer ${authToken}`;
+    // Always check localStorage for token (in case token was set after module load)
+    const token = authToken || localStorage.getItem('auth.token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+      // Update the authToken variable if it was null but token exists in storage
+      if (!authToken && token) {
+        authToken = token;
+      }
+    } else {
+      console.log('No auth token found for request:', config.url);
     }
+    console.log('API Request:', config.method?.toUpperCase(), config.baseURL + config.url);
     return config;
   },
   (error) => {
