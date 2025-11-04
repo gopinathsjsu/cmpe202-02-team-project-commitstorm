@@ -41,6 +41,12 @@ jwt:
   secret: mySecretKey123456789012345678901234567890
   expiration: 86400000 # 24 hours in milliseconds
 
+# OpenAI ChatGPT Configuration
+openai:
+  api-key: ${OPENAI_API_KEY:your-api-key-here}
+  model: gpt-3.5-turbo
+  temperature: 0.3
+  
 logging:
   level:
     com.campus.marketplace: DEBUG
