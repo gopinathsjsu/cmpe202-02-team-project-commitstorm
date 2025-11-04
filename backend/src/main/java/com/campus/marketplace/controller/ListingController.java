@@ -1,9 +1,12 @@
 package com.campus.marketplace.controller;
 
+import com.campus.marketplace.dto.ChatbotSearchRequest;
+import com.campus.marketplace.dto.ChatbotSearchResponse;
 import com.campus.marketplace.dto.ListingDTO;
 import com.campus.marketplace.entity.Listing;
 import com.campus.marketplace.entity.User;
 import com.campus.marketplace.entity.Category;
+import com.campus.marketplace.service.ChatbotSearchService;
 import com.campus.marketplace.service.ListingService;
 import com.campus.marketplace.service.UserService;
 import com.campus.marketplace.service.CategoryService;
@@ -36,6 +39,9 @@ public class ListingController {
     
     @Autowired
     private CategoryService categoryService;
+    
+    @Autowired
+    private ChatbotSearchService chatbotSearchService;
     
     /**
      * Create a listing.
@@ -167,6 +173,73 @@ public class ListingController {
                 .map(ListingDTO::new)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(listings);
+    }
+    
+    /**
+     * Chatbot search: process conversational queries (e.g., "textbook for CMPE 202?")
+     * Uses ChatGPT API to interpret natural language and returns search results.
+     * Falls back to keyword extraction if ChatGPT is unavailable.
+     * 
+     * @param request chatbot search request with query
+     * @return 200 with ChatbotSearchResponse containing interpreted query and results
+     */
+    @PostMapping("/chatbot-search")
+    public ResponseEntity<ChatbotSearchResponse> chatbotSearch(@Valid @RequestBody ChatbotSearchRequest request) {
+        ChatbotSearchService.ChatbotSearchResult result = chatbotSearchService.processQuery(request.getQuery());
+        
+        List<ListingDTO> listingDTOs = result.getListings().stream()
+                .map(ListingDTO::new)
+                .collect(Collectors.toList());
+        
+        String message = listingDTOs.isEmpty() 
+            ? "No listings found matching your query."
+            : "Found " + listingDTOs.size() + " listing(s) matching your query.";
+        
+        if (result.isUsedFallback()) {
+            message += " (Using keyword search fallback)";
+        }
+        
+        ChatbotSearchResponse response = new ChatbotSearchResponse(
+            result.getInterpretedQuery(),
+            listingDTOs,
+            message,
+            result.isUsedFallback()
+        );
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Chatbot search via GET: process conversational queries via query parameter.
+     * Convenience endpoint for simpler client integration.
+     * 
+     * @param query natural language query
+     * @return 200 with ChatbotSearchResponse containing interpreted query and results
+     */
+    @GetMapping("/chatbot-search")
+    public ResponseEntity<ChatbotSearchResponse> chatbotSearchGet(@RequestParam String query) {
+        ChatbotSearchService.ChatbotSearchResult result = chatbotSearchService.processQuery(query);
+        
+        List<ListingDTO> listingDTOs = result.getListings().stream()
+                .map(ListingDTO::new)
+                .collect(Collectors.toList());
+        
+        String message = listingDTOs.isEmpty() 
+            ? "No listings found matching your query."
+            : "Found " + listingDTOs.size() + " listing(s) matching your query.";
+        
+        if (result.isUsedFallback()) {
+            message += " (Using keyword search fallback)";
+        }
+        
+        ChatbotSearchResponse response = new ChatbotSearchResponse(
+            result.getInterpretedQuery(),
+            listingDTOs,
+            message,
+            result.isUsedFallback()
+        );
+        
+        return ResponseEntity.ok(response);
     }
     
     /**
