@@ -124,6 +124,7 @@ Then try endpoints in Swagger (`/categories`, `/listings`, etc.).
 ## 7) Postman (optional)
 - Import the provided Postman collection (if present in the repo) or create a new one.
 - Set `{{baseUrl}} = http://localhost:8080/api/v1`.
+- Postamn documentation published at 'https://documenter.getpostman.com/view/49559530/2sB3WqvLMV'
 
 ---
 
