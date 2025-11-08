@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Post from "./post.tsx";
 import type {ListingDetailProps} from "./post.tsx";
 import { getListings } from "../services/listingsService";
@@ -8,15 +8,54 @@ import '../css/Marketplace.css';
  * Map API listing response to Post component props
  */
 const mapListingToPostProps = (listing) => {
-  // Parse images JSON string
-  let imageUrl = "https://via.placeholder.com/150"; // default placeholder
+  // Parse images JSON string - format: "[\"https://example.com/iphone1.jpg\", \"https://example.com/iphone2.jpg\"]"
+  let imageUrl = "https://via.placeholder.com/400x200?text=No+Image"; // default placeholder
+  
   if (listing.images) {
     try {
-      const images = JSON.parse(listing.images);
-      imageUrl = Array.isArray(images) && images.length > 0 ? images[0] : imageUrl;
+      let images;
+      
+      // Check if images is already an array
+      if (Array.isArray(listing.images)) {
+        images = listing.images;
+      } else if (typeof listing.images === 'string') {
+        // Trim the string first in case of whitespace
+        const trimmedImages = listing.images.trim();
+        
+        // Try to parse JSON string
+        if (trimmedImages.startsWith('[') || trimmedImages.startsWith('"')) {
+          images = JSON.parse(trimmedImages);
+        } else {
+          // If it's a single URL string (not JSON), use it directly
+          images = [trimmedImages];
+        }
+      }
+      
+      if (Array.isArray(images) && images.length > 0) {
+        // Filter out empty strings and null values, then get the first valid URL
+        const validImages = images.filter(img => img && typeof img === 'string' && img.trim() !== '');
+        if (validImages.length > 0) {
+          imageUrl = validImages[0].trim();
+        }
+      }
+      
+      console.log('Parsed images for listing:', listing.title, 'Image URL:', imageUrl);
     } catch (e) {
-      console.error('Error parsing images:', e);
+      console.error('Error parsing images for listing:', listing.title, e);
+      console.log('Raw images value:', listing.images, 'Type:', typeof listing.images);
+      
+      // Fallback: if images is a string but not valid JSON, try using it as a single URL
+      if (typeof listing.images === 'string' && listing.images.trim() !== '') {
+        const trimmed = listing.images.trim();
+        // Basic URL validation
+        if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+          imageUrl = trimmed;
+          console.log('Using images string as direct URL:', imageUrl);
+        }
+      }
     }
+  } else {
+    console.log('No images field for listing:', listing.title);
   }
 
   // Convert UUID string id to number for Post component (using hash)
@@ -41,9 +80,15 @@ const mapListingToPostProps = (listing) => {
 };
 
 export const Marketplace = () => {
-  const [listings, setListings] = useState<ListingDetailProps[]>([]);
+  const [allListings, setAllListings] = useState<ListingDetailProps[]>([]);
+  const [displayedListings, setDisplayedListings] = useState<ListingDetailProps[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const observerTarget = useRef<HTMLDivElement>(null);
+
+  const ITEMS_PER_PAGE = 12;
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -73,7 +118,10 @@ export const Marketplace = () => {
           })
           .map(mapListingToPostProps);
         
-        setListings(userListings);
+        setAllListings(userListings);
+        // Display first batch
+        setDisplayedListings(userListings.slice(0, ITEMS_PER_PAGE));
+        setHasMore(userListings.length > ITEMS_PER_PAGE);
       } catch (err: any) {
         console.error('Error fetching listings:', err);
         let errorMessage = 'Failed to load listings. Please try again later.';
@@ -97,47 +145,94 @@ export const Marketplace = () => {
     fetchListings();
   }, []);
 
+  const loadMore = useCallback(() => {
+    if (loadingMore || !hasMore) return;
+
+    setLoadingMore(true);
+    
+    // Simulate slight delay for smooth loading
+    setTimeout(() => {
+      const currentCount = displayedListings.length;
+      const nextBatch = allListings.slice(currentCount, currentCount + ITEMS_PER_PAGE);
+      
+      if (nextBatch.length > 0) {
+        setDisplayedListings(prev => [...prev, ...nextBatch]);
+        setHasMore(currentCount + ITEMS_PER_PAGE < allListings.length);
+      } else {
+        setHasMore(false);
+      }
+      
+      setLoadingMore(false);
+    }, 300);
+  }, [loadingMore, hasMore, displayedListings.length, allListings]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [hasMore, loadingMore, loadMore]);
+
   if (loading) {
     return (
-      <div className="marketplace-container">
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <p>Loading listings...</p>
-        </div>
+      <div className="marketplace-container loading-container">
+        <div className="loading-spinner"></div>
+        <p style={{ marginTop: '1rem' }}>Loading listings...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="marketplace-container">
-        <div style={{ textAlign: 'center', padding: '2rem', color: '#dc2626' }}>
-          <p>Error: {error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}
-          >
-            Retry
-          </button>
-        </div>
+      <div className="marketplace-container error-container">
+        <p>Error: {error}</p>
+        <button onClick={() => window.location.reload()}>
+          Retry
+        </button>
       </div>
     );
   }
 
-  if (listings.length === 0) {
+  if (displayedListings.length === 0) {
     return (
-      <div className="marketplace-container">
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <p>No active listings found.</p>
-        </div>
+      <div className="marketplace-container empty-container">
+        <p>No active listings found.</p>
       </div>
     );
   }
 
   return (
-    <div className="marketplace-container">
-      {listings.map((listing) => (
-        <Post key={listing.id} {...listing} />
-      ))}
-    </div>
+    <>
+      <div className="marketplace-container">
+        {displayedListings.map((listing) => (
+          <Post key={listing.listingId || listing.id} {...listing} />
+        ))}
+      </div>
+      {hasMore && (
+        <div ref={observerTarget} className="loading-container" style={{ padding: '2rem' }}>
+          {loadingMore && (
+            <>
+              <div className="loading-spinner"></div>
+              <p style={{ marginTop: '1rem' }}>Loading more listings...</p>
+            </>
+          )}
+        </div>
+      )}
+    </>
   );
 }

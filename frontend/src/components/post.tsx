@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../css/Post.css';
 
 export type ListingDetailProps = {
@@ -18,11 +18,14 @@ export type ListingDetailProps = {
 }
 
 function Post( props: ListingDetailProps ) {
-    const [post, setPost] = useState<ListingDetailProps>();
+    const [imageError, setImageError] = useState(false);
+    const [imageLoading, setImageLoading] = useState(true);
 
-    useMemo( () => {
-        setPost(props);
-    }, [props]);
+    // Reset image states when props change
+    useEffect(() => {
+        setImageLoading(true);
+        setImageError(false);
+    }, [props.imageUrl]);
 
     function sendMessageToVendor(vendorId: string | number) {
         // Logic to send a message to the vendor
@@ -35,25 +38,64 @@ function Post( props: ListingDetailProps ) {
     }
 
     // Use sellerId if available (from API), otherwise fall back to userId
-    const vendorId = post?.sellerId || post?.userId;
+    const vendorId = props?.sellerId || props?.userId;
 
     return (
         <div className='container'>
-            <img src={post?.imageUrl} alt={post?.title || "Post Image"} className="post-image" />
+            <div style={{ position: 'relative', width: '100%', height: '200px', marginBottom: '12px', borderRadius: '8px', backgroundColor: '#f3f4f6', overflow: 'hidden' }}>
+                {imageLoading && !imageError && (
+                    <div style={{ 
+                        position: 'absolute', 
+                        top: 0, 
+                        left: 0, 
+                        width: '100%', 
+                        height: '100%', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        backgroundColor: '#f3f4f6',
+                        color: '#9ca3af',
+                        zIndex: 1
+                    }}>
+                        Loading image...
+                    </div>
+                )}
+                <img 
+                    src={imageError ? 'https://via.placeholder.com/400x200?text=No+Image' : (props?.imageUrl || 'https://via.placeholder.com/400x200?text=No+Image')} 
+                    alt={props?.title || "Post Image"} 
+                    className="post-image"
+                    style={{ 
+                        display: 'block',
+                        opacity: imageLoading ? 0 : 1,
+                        transition: 'opacity 0.3s ease'
+                    }}
+                    onLoad={() => {
+                        setImageLoading(false);
+                        setImageError(false);
+                    }}
+                    onError={(e) => {
+                        console.error('Image failed to load:', props?.imageUrl);
+                        setImageError(true);
+                        setImageLoading(false);
+                        // Force load placeholder
+                        e.currentTarget.src = 'https://via.placeholder.com/400x200?text=No+Image';
+                    }}
+                />
+            </div>
             <div className="post-content">
                 <div className="description">
-                    {post?.title && <h2>{post.title}</h2>}
-                    <p>Condition: {post?.condition}</p>
-                    <p>Category: {post?.category}</p>
-                    <h3>Description:</h3>
-                    {post?.description}
+                    {props?.title && <h2>{props.title}</h2>}
+                    <p>Condition: {props?.condition}</p>
+                    <p>Category: {props?.category}</p>
+                    <h3>Description</h3>
+                    <div>{props?.description}</div>
                 </div>
                 <div className="post-details">
                     <div className="post-detail-item">
-                        Vendor: {post?.username}
+                        Vendor: {props?.username}
                     </div>
                     <div className="post-detail-item">
-                        Price: ${post?.price?.toFixed(2)}
+                        ${props?.price?.toFixed(2)}
                     </div>
                 </div>
             </div>
@@ -61,11 +103,10 @@ function Post( props: ListingDetailProps ) {
                 <button className="post-button" onClick={() => vendorId && sendMessageToVendor(vendorId)}>
                     Message Vendor
                 </button>
-                <button className="post-button" onClick={() => post?.listingId && reportPost(post.listingId)}>
+                <button className="post-button" onClick={() => props?.listingId && reportPost(props.listingId)}>
                     Report Post
                 </button>
             </div>
-            
         </div>
     );
 }
