@@ -149,10 +149,244 @@ backend/
 
 ## Testing
 
-The application includes comprehensive API endpoints that can be tested using:
-- Swagger UI (http://localhost:8080/swagger-ui.html)
-- Postman or similar API testing tools
-- cURL commands
+The application includes a comprehensive test suite with unit tests, integration tests, and security tests.
+
+### Test Prerequisites
+
+Before running tests, ensure you have:
+- **Java 17** or higher
+- **Maven 3.6** or higher
+- **Docker** (required for Testcontainers integration tests)
+  - Testcontainers uses Docker to spin up MySQL containers for integration tests
+  - Make sure Docker is running before executing tests
+
+### Running Tests
+
+#### Run All Tests
+```bash
+cd backend
+mvn test
+```
+
+#### Run Specific Test Class
+```bash
+# Integration tests
+mvn test -Dtest=AuthControllerIntegrationTest
+mvn test -Dtest=TransactionControllerIntegrationTest
+mvn test -Dtest=MessageControllerIntegrationTest
+
+# Unit tests
+mvn test -Dtest=AuthServiceTest
+mvn test -Dtest=TransactionServiceTest
+mvn test -Dtest=MessageServiceTest
+
+# Security tests
+mvn test -Dtest=SecurityTest
+```
+
+#### Run Tests by Package
+```bash
+# All integration tests
+mvn test -Dtest="com.campus.marketplace.integration.*"
+
+# All service unit tests
+mvn test -Dtest="com.campus.marketplace.service.*Test"
+
+# All security tests
+mvn test -Dtest="com.campus.marketplace.security.*"
+```
+
+#### Run Tests with Coverage
+```bash
+# Generate test coverage report (requires jacoco plugin)
+mvn test jacoco:report
+# View report at: backend/target/site/jacoco/index.html
+```
+
+### Test Structure
+
+The test suite is organized as follows:
+
+```
+backend/src/test/java/com/campus/marketplace/
+├── integration/              # Integration tests (use Testcontainers)
+│   ├── IntegrationTestBase.java
+│   ├── AuthControllerIntegrationTest.java
+│   ├── TransactionControllerIntegrationTest.java
+│   ├── MessageControllerIntegrationTest.java
+│   ├── ReviewControllerIntegrationTest.java
+│   ├── ListingControllerIntegrationTest.java
+│   ├── ListingIntegrationTest.java
+│   ├── TransactionIntegrationTest.java
+│   └── WishlistIntegrationTest.java
+├── service/                 # Service unit tests (use Mockito)
+│   ├── AuthServiceTest.java
+│   ├── TransactionServiceTest.java
+│   └── MessageServiceTest.java
+└── security/                # Security and authorization tests
+    └── SecurityTest.java
+```
+
+### Test Types
+
+#### 1. Integration Tests
+- **Framework**: JUnit 5 + Testcontainers + MockMvc
+- **Database**: Uses Testcontainers to spin up MySQL 8.0 containers
+- **Scope**: Tests full request/response cycle through controllers
+- **Location**: `backend/src/test/java/com/campus/marketplace/integration/`
+
+**Key Features:**
+- Tests run against real MySQL database in Docker containers
+- Database is automatically created and cleaned up per test
+- Tests verify complete transaction flows including automatic message sending
+- All database operations are transactional and rolled back after each test
+
+**Example:**
+```java
+@AutoConfigureMockMvc
+@Transactional
+public class AuthControllerIntegrationTest extends IntegrationTestBase {
+    // Tests authentication endpoints with real database
+}
+```
+
+#### 2. Unit Tests
+- **Framework**: JUnit 5 + Mockito
+- **Scope**: Tests individual service methods in isolation
+- **Location**: `backend/src/test/java/com/campus/marketplace/service/`
+
+**Key Features:**
+- Uses mocks to isolate service logic
+- Fast execution (no database required)
+- Tests business logic and error handling
+
+**Example:**
+```java
+@ExtendWith(MockitoExtension.class)
+class AuthServiceTest {
+    @Mock
+    private UserRepository userRepository;
+    
+    @InjectMocks
+    private AuthService authService;
+    // Tests service methods with mocked dependencies
+}
+```
+
+#### 3. Security Tests
+- **Framework**: JUnit 5 + Testcontainers + MockMvc
+- **Scope**: Tests JWT authentication, authorization, and role-based access
+- **Location**: `backend/src/test/java/com/campus/marketplace/security/`
+
+**Key Features:**
+- Tests public vs protected endpoints
+- Validates JWT token handling
+- Tests role-based access control
+- Verifies inactive user restrictions
+
+### Test Coverage
+
+The test suite covers:
+
+✅ **Controllers** (Integration Tests):
+- AuthController (register, login, logout, current user)
+- TransactionController (request-to-buy, mark-sold, reject)
+- MessageController (send, get, unread messages, mark as read)
+- ReviewController (create, get reviews)
+- ListingController (CRUD, search, filters)
+
+✅ **Services** (Unit Tests):
+- AuthService (authentication, registration)
+- TransactionService (transaction flow, message automation)
+- MessageService (messaging operations)
+
+✅ **Security**:
+- JWT authentication and validation
+- Authorization checks
+- Role-based access control
+- Inactive user handling
+
+✅ **Business Logic**:
+- Transaction flow (request → accept/reject)
+- Automatic message sending for transactions and reviews
+- Listing status transitions
+- Review creation and validation
+
+### Troubleshooting Tests
+
+#### Docker Not Running
+If you see errors like "Could not find a valid Docker environment":
+```bash
+# Start Docker Desktop or Docker daemon
+# On macOS:
+open -a Docker
+
+# On Linux:
+sudo systemctl start docker
+```
+
+#### Testcontainers Connection Issues
+If tests fail with connection errors:
+```bash
+# Verify Docker is accessible
+docker ps
+
+# Check Testcontainers configuration
+# Tests use MySQL 8.0 container with reuse enabled
+```
+
+#### Port Conflicts
+If you see port binding errors:
+```bash
+# Tests use random ports, but if issues persist:
+# Check for running MySQL instances
+docker ps | grep mysql
+
+# Stop conflicting containers
+docker stop <container-id>
+```
+
+#### Database Migration Issues
+If Flyway migrations fail in tests:
+```bash
+# Tests automatically run migrations
+# If issues occur, check:
+# 1. Flyway is enabled in test configuration
+# 2. Migration files are in src/main/resources/db/migration/
+```
+
+### Continuous Integration
+
+Tests are designed to run in CI/CD pipelines:
+
+```yaml
+# Example GitHub Actions workflow
+- name: Run Tests
+  run: |
+    cd backend
+    mvn test
+```
+
+**Requirements for CI:**
+- Docker must be available in CI environment
+- Testcontainers will automatically pull MySQL image if needed
+- Tests are isolated and can run in parallel
+
+### Manual API Testing
+
+For manual API testing, you can also use:
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
+- **Postman Collection**: `Campus Marketplace API.postman_collection.json`
+- **cURL commands**: See API_DOCUMENTATION.md
+
+### Detailed Testing Documentation
+
+For comprehensive testing instructions, see **[TESTING.md](backend/TESTING.md)** which includes:
+- Detailed setup instructions
+- Test structure explanation
+- Writing new tests guide
+- Troubleshooting common issues
+- CI/CD integration examples
 
 ## Contributing
 
@@ -224,6 +458,7 @@ This project is part of CMPE 202 coursework.
 - **[Runbook](backend/RUNBOOK.md)** - Operations and troubleshooting guide
 - **[Backup & Rollback](backend/BACKUP_ROLLBACK.md)** - Backup procedures and rollback steps
 - **[API Documentation](API_DOCUMENTATION.md)** - Detailed API specifications
+- **[Testing Guide](backend/TESTING.md)** - Comprehensive testing documentation
 
 ### Demo Accounts
 
