@@ -170,6 +170,8 @@ This project is part of CMPE 202 coursework.
 
 - Sonali Lonkar
 - Sofia Silva
+- Shivani Jariwala
+- Alex
 
 ## Support
 
