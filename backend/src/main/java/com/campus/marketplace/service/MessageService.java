@@ -186,4 +186,58 @@ public class MessageService {
         
         messageRepository.delete(message);
     }
+    
+    // Get unread message count for a user
+    public Long getUnreadMessageCount(String userId) {
+        return messageRepository.countUnreadMessagesByUserId(userId);
+    }
+    
+    // Get unread messages for a user
+    public List<MessageDTO> getUnreadMessages(String userId) {
+        List<Message> messages = messageRepository.findUnreadMessagesByUserId(userId);
+        return messages.stream()
+                .map(MessageDTO::new)
+                .collect(Collectors.toList());
+    }
+    
+    // Mark message as read
+    public MessageDTO markMessageAsRead(String messageId, String userId) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("Message not found"));
+        
+        // Only the recipient can mark a message as read
+        if (!message.getToUser().getId().equals(userId)) {
+            throw new RuntimeException("Access denied: Only the recipient can mark this message as read");
+        }
+        
+        message.setIsRead(true);
+        Message savedMessage = messageRepository.save(message);
+        
+        return new MessageDTO(savedMessage);
+    }
+    
+    // Mark all messages as read for a user
+    public void markAllMessagesAsRead(String userId) {
+        List<Message> unreadMessages = messageRepository.findUnreadMessagesByUserId(userId);
+        for (Message message : unreadMessages) {
+            message.setIsRead(true);
+        }
+        messageRepository.saveAll(unreadMessages);
+    }
+    
+    /**
+     * Create a system message automatically (e.g., for transaction notifications).
+     * This bypasses normal validation since it's an automated message.
+     * 
+     * @param listing The listing associated with the message
+     * @param fromUser The user sending the message (buyer or seller)
+     * @param toUser The user receiving the message
+     * @param content The message content
+     * @return The created message DTO
+     */
+    public MessageDTO createSystemMessage(Listing listing, User fromUser, User toUser, String content) {
+        Message message = new Message(listing, fromUser, toUser, content);
+        Message savedMessage = messageRepository.save(message);
+        return new MessageDTO(savedMessage);
+    }
 }

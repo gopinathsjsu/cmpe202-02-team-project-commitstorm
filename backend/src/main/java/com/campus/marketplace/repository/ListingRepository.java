@@ -52,4 +52,22 @@ public interface ListingRepository extends JpaRepository<Listing, String> {
     /** Page listings by seller ordered by creation time desc. */
     @Query("SELECT l FROM Listing l WHERE l.seller.id = :sellerId ORDER BY l.createdAt DESC")
     Page<Listing> findBySellerIdOrderByCreatedAtDesc(@Param("sellerId") String sellerId, Pageable pageable);
+    
+    /** Combined search with filters and sorting. */
+    @Query("SELECT l FROM Listing l WHERE " +
+           "(:searchTerm IS NULL OR :searchTerm = '' OR l.title LIKE %:searchTerm% OR l.description LIKE %:searchTerm%) AND " +
+           "(:categoryId IS NULL OR l.category.id = :categoryId) AND " +
+           "(:minPrice IS NULL OR l.price >= :minPrice) AND " +
+           "(:maxPrice IS NULL OR l.price <= :maxPrice) AND " +
+           "(:condition IS NULL OR l.condition = :condition) AND " +
+           "(:status IS NULL OR l.status = :status)")
+    Page<Listing> searchWithFilters(
+        @Param("searchTerm") String searchTerm,
+        @Param("categoryId") String categoryId,
+        @Param("minPrice") BigDecimal minPrice,
+        @Param("maxPrice") BigDecimal maxPrice,
+        @Param("condition") Listing.ItemCondition condition,
+        @Param("status") Listing.ListingStatus status,
+        Pageable pageable
+    );
 }

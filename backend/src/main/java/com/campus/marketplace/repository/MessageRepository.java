@@ -62,4 +62,12 @@ public interface MessageRepository extends JpaRepository<Message, String> {
            "ELSE m.fromUser.id " +
            "END FROM Message m WHERE m.fromUser.id = :userId OR m.toUser.id = :userId")
     List<String> findConversationPartners(@Param("userId") String userId);
+    
+    // Get unread messages count for a user
+    @Query("SELECT COUNT(m) FROM Message m WHERE m.toUser.id = :userId AND m.isRead = false")
+    Long countUnreadMessagesByUserId(@Param("userId") String userId);
+    
+    // Get unread messages for a user
+    @Query("SELECT m FROM Message m WHERE m.toUser.id = :userId AND m.isRead = false ORDER BY m.createdAt DESC")
+    List<Message> findUnreadMessagesByUserId(@Param("userId") String userId);
 }

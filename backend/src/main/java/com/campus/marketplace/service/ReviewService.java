@@ -1,5 +1,6 @@
 package com.campus.marketplace.service;
 
+import com.campus.marketplace.entity.Listing;
 import com.campus.marketplace.entity.Review;
 import com.campus.marketplace.entity.Transaction;
 import com.campus.marketplace.entity.User;
@@ -26,6 +27,9 @@ public class ReviewService {
     
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private MessageService messageService;
     
     /**
      * Create a new review with validation.
@@ -81,6 +85,13 @@ public class ReviewService {
         review.setComment(comment);
 
         Review savedReview = reviewRepository.save(review);
+        
+        // Send automatic message to seller about the review
+        Listing listing = transaction.getListing();
+        String messageContent = String.format("I've left a %d-star review for our transaction of \"%s\". %s", 
+                rating, listing.getTitle(), 
+                comment != null && !comment.isEmpty() ? "Comment: " + comment : "Thank you for the transaction!");
+        messageService.createSystemMessage(listing, reviewer, seller, messageContent);
         
         // Return the review with eagerly loaded relationships
         return reviewRepository.findByIdWithDetails(savedReview.getId()).orElse(savedReview);

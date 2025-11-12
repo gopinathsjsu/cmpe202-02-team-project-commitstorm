@@ -173,6 +173,120 @@ This project is part of CMPE 202 coursework.
 - Shivani Jariwala
 - Alex
 
+## 🚀 Production Deployment
+
+### Architecture
+
+```
+┌─────────────┐
+│   Client    │
+│  (React)    │
+└──────┬──────┘
+       │ HTTPS
+       ▼
+┌─────────────┐
+│   Nginx     │
+│ (Port 80)   │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐      ┌─────────────┐
+│   Spring    │◄────►│   MySQL     │
+│    Boot     │      │     RDS     │
+│ (Port 8080) │      │             │
+└─────────────┘      └─────────────┘
+     EC2                  AWS RDS
+```
+
+### Quick Deploy
+
+1. **Prerequisites**:
+   - EC2 instance with Docker
+   - RDS MySQL database
+   - Security groups configured
+
+2. **Deploy**:
+   ```bash
+   cd backend
+   cp .env.example .env
+   # Edit .env with your RDS credentials
+   ./scripts/deploy.sh
+   ```
+
+3. **Verify**:
+   ```bash
+   curl http://localhost:8080/api/health
+   ```
+
+### Documentation
+
+- **[Production Deployment Guide](backend/PRODUCTION_DEPLOYMENT.md)** - Complete deployment checklist
+- **[Runbook](backend/RUNBOOK.md)** - Operations and troubleshooting guide
+- **[Backup & Rollback](backend/BACKUP_ROLLBACK.md)** - Backup procedures and rollback steps
+- **[API Documentation](API_DOCUMENTATION.md)** - Detailed API specifications
+
+### Demo Accounts
+
+After running V5 migration:
+- **Admin**: `admin@demo.campusmarket.com` / `demo123`
+- **Seller**: `seller@demo.campusmarket.com` / `demo123`
+- **Buyer**: `buyer@demo.campusmarket.com` / `demo123`
+
+### Testing
+
+#### Postman Collection
+- **Full Collection**: `Campus Marketplace API.postman_collection.json`
+- **Smoke Tests**: `backend/postman/Smoke_Test_Collection.json`
+- Import into Postman and set `base_url` variable
+
+#### Load Testing
+```bash
+# Install k6: https://k6.io/docs/getting-started/installation/
+k6 run backend/scripts/load-tests/k6-smoke-test.js
+k6 run --vus 50 --duration 2m backend/scripts/load-tests/k6-load-test.js
+```
+
+#### Demo Script
+```bash
+./backend/scripts/demo-script.sh
+```
+
+## 📊 Monitoring
+
+### Health Check
+```bash
+curl http://your-domain/api/health
+```
+
+### Logs
+```bash
+# Application logs
+docker logs campus-marketplace-api --tail 100 -f
+
+# Nginx logs
+tail -f /var/log/nginx/campus-marketplace-access.log
+```
+
+## 🔧 Maintenance
+
+### Reset Demo Data
+```bash
+./backend/scripts/reset-demo.sh
+```
+
+### Update Application
+```bash
+git pull
+cd backend
+./scripts/deploy.sh
+```
+
 ## Support
 
 For questions or issues, please contact the development team or create an issue in the repository.
+
+## 📚 Additional Resources
+
+- **Swagger UI**: `http://localhost:8080/swagger-ui.html`
+- **Postman Collection**: Import `Campus Marketplace API.postman_collection.json`
+- **Authentication Guide**: [AUTHENTICATION.md](backend/AUTHENTICATION.md)

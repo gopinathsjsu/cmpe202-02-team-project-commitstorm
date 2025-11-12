@@ -254,4 +254,87 @@ public class MessageController {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
+    
+    // Get unread message count
+    @GetMapping("/unread/count/{userId}")
+    @Operation(summary = "Get unread message count", description = "Get the count of unread messages for a user")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<?> getUnreadMessageCount(
+            @PathVariable String userId,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String currentUserId = getUserIdFromToken(authHeader);
+            
+            // Users can only view their own unread count
+            if (!currentUserId.equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied: You can only view your own unread count");
+            }
+            
+            Long count = messageService.getUnreadMessageCount(userId);
+            return ResponseEntity.ok(count);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    // Get unread messages
+    @GetMapping("/unread/{userId}")
+    @Operation(summary = "Get unread messages", description = "Get all unread messages for a user")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<?> getUnreadMessages(
+            @PathVariable String userId,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String currentUserId = getUserIdFromToken(authHeader);
+            
+            // Users can only view their own unread messages
+            if (!currentUserId.equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied: You can only view your own unread messages");
+            }
+            
+            List<MessageDTO> messages = messageService.getUnreadMessages(userId);
+            return ResponseEntity.ok(messages);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    // Mark message as read
+    @PatchMapping("/{messageId}/mark-read")
+    @Operation(summary = "Mark message as read", description = "Mark a specific message as read")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<?> markMessageAsRead(
+            @PathVariable String messageId,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String userId = getUserIdFromToken(authHeader);
+            
+            MessageDTO message = messageService.markMessageAsRead(messageId, userId);
+            return ResponseEntity.ok(message);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    // Mark all messages as read
+    @PatchMapping("/mark-all-read/{userId}")
+    @Operation(summary = "Mark all messages as read", description = "Mark all unread messages as read for a user")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<?> markAllMessagesAsRead(
+            @PathVariable String userId,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String currentUserId = getUserIdFromToken(authHeader);
+            
+            // Users can only mark their own messages as read
+            if (!currentUserId.equals(userId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied: You can only mark your own messages as read");
+            }
+            
+            messageService.markAllMessagesAsRead(userId);
+            return ResponseEntity.ok("All messages marked as read");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
 }

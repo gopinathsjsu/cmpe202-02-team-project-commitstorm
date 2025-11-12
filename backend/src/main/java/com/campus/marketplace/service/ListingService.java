@@ -22,9 +22,11 @@ public class ListingService {
     @Autowired
     private ListingRepository listingRepository;
     
+    @SuppressWarnings("unused")
     @Autowired
     private UserRepository userRepository;
     
+    @SuppressWarnings("unused")
     @Autowired
     private CategoryRepository categoryRepository;
     
@@ -196,5 +198,82 @@ public class ListingService {
     public boolean isListingOwnedByUser(String listingId, String userId) {
         Optional<Listing> listingOpt = listingRepository.findById(listingId);
         return listingOpt.isPresent() && listingOpt.get().getSeller().getId().equals(userId);
+    }
+    
+    /**
+     * Combined search with filters and sorting.
+     * @param searchTerm keyword search (optional)
+     * @param categoryId filter by category (optional)
+     * @param minPrice minimum price filter (optional)
+     * @param maxPrice maximum price filter (optional)
+     * @param condition filter by condition (optional)
+     * @param status filter by status (optional, defaults to ACTIVE)
+     * @param sortBy sort field: "newest", "price_asc", "price_desc" (defaults to "newest")
+     * @param pageable pagination
+     * @return Page of listings
+     */
+    public Page<Listing> searchWithFilters(
+            String searchTerm,
+            String categoryId,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            Listing.ItemCondition condition,
+            Listing.ListingStatus status,
+            String sortBy,
+            Pageable pageable) {
+        
+        // Default status to ACTIVE if not specified
+        if (status == null) {
+            status = Listing.ListingStatus.ACTIVE;
+        }
+        
+        // Normalize search term
+        String normalizedSearchTerm = (searchTerm != null && !searchTerm.trim().isEmpty()) ? searchTerm.trim() : null;
+        
+        // Apply sorting
+        Pageable sortedPageable = pageable;
+        if (sortBy != null) {
+            switch (sortBy.toLowerCase()) {
+                case "price_asc":
+                    sortedPageable = org.springframework.data.domain.PageRequest.of(
+                        pageable.getPageNumber(),
+                        pageable.getPageSize(),
+                        org.springframework.data.domain.Sort.by("price").ascending()
+                    );
+                    break;
+                case "price_desc":
+                    sortedPageable = org.springframework.data.domain.PageRequest.of(
+                        pageable.getPageNumber(),
+                        pageable.getPageSize(),
+                        org.springframework.data.domain.Sort.by("price").descending()
+                    );
+                    break;
+                case "newest":
+                default:
+                    sortedPageable = org.springframework.data.domain.PageRequest.of(
+                        pageable.getPageNumber(),
+                        pageable.getPageSize(),
+                        org.springframework.data.domain.Sort.by("createdAt").descending()
+                    );
+                    break;
+            }
+        } else {
+            // Default to newest
+            sortedPageable = org.springframework.data.domain.PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                org.springframework.data.domain.Sort.by("createdAt").descending()
+            );
+        }
+        
+        return listingRepository.searchWithFilters(
+            normalizedSearchTerm,
+            categoryId,
+            minPrice,
+            maxPrice,
+            condition,
+            status,
+            sortedPageable
+        );
     }
 }

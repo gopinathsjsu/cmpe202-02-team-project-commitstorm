@@ -1,7 +1,6 @@
 package com.campus.marketplace.dto;
 
 import com.campus.marketplace.entity.Message;
-import com.campus.marketplace.entity.User;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDateTime;
@@ -16,6 +15,7 @@ public class MessageDTO {
     private String toUserId;
     private String toUserName;
     private String content;
+    private Boolean isRead;
     
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
@@ -32,6 +32,7 @@ public class MessageDTO {
         this.toUserId = message.getToUser().getId();
         this.toUserName = message.getToUser().getName();
         this.content = message.getContent();
+        this.isRead = message.getIsRead();
         this.createdAt = message.getCreatedAt();
     }
     
@@ -106,5 +107,13 @@ public class MessageDTO {
     
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+    
+    public Boolean getIsRead() {
+        return isRead;
+    }
+    
+    public void setIsRead(Boolean isRead) {
+        this.isRead = isRead;
     }
 }

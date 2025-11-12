@@ -72,6 +72,7 @@ http://localhost:8080/api
 
 ### Transactions
 - `POST /api/transactions` - Create a new transaction
+- `POST /api/transactions/request-to-buy?listingId={id}&buyerId={id}` - Buyer requests to buy (creates PENDING transaction)
 - `GET /api/transactions` - Get all transactions
 - `GET /api/transactions/{id}` - Get transaction by ID
 - `GET /api/transactions/listing/{listingId}` - Get transaction by listing ID
@@ -81,6 +82,8 @@ http://localhost:8080/api
 - `GET /api/transactions/seller/{sellerId}/status/{status}` - Get transactions by seller and status
 - `PUT /api/transactions/{id}` - Update transaction
 - `PATCH /api/transactions/{id}/status?status={status}` - Update transaction status
+- `PATCH /api/transactions/{transactionId}/mark-sold?sellerId={id}` - Seller accepts request (marks as COMPLETED)
+- `PATCH /api/transactions/{transactionId}/reject?sellerId={id}` - Seller rejects request (marks as CANCELLED)
 - `DELETE /api/transactions/{id}` - Delete transaction
 
 ### Reviews
