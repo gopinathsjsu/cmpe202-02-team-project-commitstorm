@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -54,9 +55,11 @@ public class UserController {
     
     /**
      * List all users.
+     * Admin only.
      * @return 200 with list of UserDTO
      */
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserDTO>> getAllUsers() {
         List<UserDTO> users = userService.getAllUsers().stream()
                 .map(UserDTO::new)
@@ -151,11 +154,13 @@ public class UserController {
     
     /**
      * Update user status only.
+     * Admin only.
      * @param id user id
      * @param status new status
      * @return 200 with updated UserDTO or 404 if not found
      */
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserDTO> updateUserStatus(@PathVariable String id, @RequestParam User.UserStatus status) {
         try {
             User updatedUser = userService.updateUserStatus(id, status);
@@ -167,10 +172,12 @@ public class UserController {
     
     /**
      * Delete user.
+     * Admin only.
      * @param id user id
      * @return 204 No Content
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable String id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
