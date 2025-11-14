@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -50,8 +51,10 @@ public class ReportController {
     
     /**
      * Get all reports.
+     * Admin only.
      */
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<ReportDTO>> getAllReports() {
         List<ReportDTO> reports = reportService.getAllReports().stream()
                 .map(ReportDTO::new)
@@ -147,8 +150,10 @@ public class ReportController {
     
     /**
      * Assign a moderator to a report.
+     * Admin only.
      */
     @PatchMapping("/{id}/assign-moderator")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ReportDTO> assignModerator(@PathVariable String id, @RequestParam String moderatorId) {
         try {
             Report updatedReport = reportService.assignModerator(id, moderatorId);
@@ -160,8 +165,10 @@ public class ReportController {
     
     /**
      * Update report status.
+     * Admin only.
      */
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ReportDTO> updateReportStatus(@PathVariable String id, @RequestParam Report.ReportStatus status) {
         try {
             Report updatedReport = reportService.updateReportStatus(id, status);
@@ -173,10 +180,13 @@ public class ReportController {
     
     /**
      * Delete a report.
+     * Admin only.
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteReport(@PathVariable String id) {
         reportService.deleteReport(id);
         return ResponseEntity.noContent().build();
     }
 }
+
