@@ -369,4 +369,38 @@ public class ListingController {
         listingService.deleteListing(id);
         return ResponseEntity.noContent().build();
     }
+    
+    /**
+     * Combined search with filters and sorting.
+     * Supports keyword search, category filter, price range, condition filter, and sorting.
+     * 
+     * @param searchTerm keyword search (optional)
+     * @param categoryId filter by category (optional)
+     * @param minPrice minimum price filter (optional)
+     * @param maxPrice maximum price filter (optional)
+     * @param condition filter by condition (optional)
+     * @param status filter by status (optional, defaults to ACTIVE)
+     * @param sortBy sort field: "newest", "price_asc", "price_desc" (defaults to "newest")
+     * @param page page number (defaults to 0)
+     * @param size page size (defaults to 10)
+     * @return 200 with Page of ListingDTO
+     */
+    @GetMapping("/search/advanced")
+    public ResponseEntity<Page<ListingDTO>> searchWithFilters(
+            @RequestParam(required = false) String searchTerm,
+            @RequestParam(required = false) String categoryId,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) Listing.ItemCondition condition,
+            @RequestParam(required = false) Listing.ListingStatus status,
+            @RequestParam(required = false, defaultValue = "newest") String sortBy,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Listing> listings = listingService.searchWithFilters(
+            searchTerm, categoryId, minPrice, maxPrice, condition, status, sortBy, pageable
+        );
+        Page<ListingDTO> listingDTOs = listings.map(ListingDTO::new);
+        return ResponseEntity.ok(listingDTOs);
+    }
 }

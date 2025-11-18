@@ -169,6 +169,67 @@ public class TransactionController {
     }
     
     /**
+     * Request to Buy: Buyer initiates a purchase request for a listing.
+     * Creates a transaction with the listing's current price and sets status to PENDING.
+     * 
+     * @param listingId listing id
+     * @param buyerId buyer id
+     * @return 201 with created TransactionDTO or 400 on validation failure
+     */
+    @PostMapping("/request-to-buy")
+    public ResponseEntity<TransactionDTO> requestToBuy(
+            @RequestParam String listingId,
+            @RequestParam String buyerId) {
+        try {
+            Transaction transaction = transactionService.requestToBuy(listingId, buyerId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(new TransactionDTO(transaction));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+    
+    /**
+     * Mark transaction as SOLD (seller action - accepts the purchase request).
+     * Updates transaction status to COMPLETED and listing status to SOLD.
+     * 
+     * @param transactionId transaction id
+     * @param sellerId seller id (for authorization)
+     * @return 200 with updated TransactionDTO or 400 on failure
+     */
+    @PatchMapping("/{transactionId}/mark-sold")
+    public ResponseEntity<TransactionDTO> markAsSold(
+            @PathVariable String transactionId,
+            @RequestParam String sellerId) {
+        try {
+            Transaction updatedTransaction = transactionService.markAsSold(transactionId, sellerId);
+            return ResponseEntity.ok(new TransactionDTO(updatedTransaction));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+    
+    /**
+     * Reject purchase request (seller action - declines the purchase request).
+     * Updates transaction status to CANCELLED and listing status back to ACTIVE.
+     * This makes the listing available for other buyers again.
+     * 
+     * @param transactionId transaction id
+     * @param sellerId seller id (for authorization)
+     * @return 200 with updated TransactionDTO or 400 on failure
+     */
+    @PatchMapping("/{transactionId}/reject")
+    public ResponseEntity<TransactionDTO> rejectRequest(
+            @PathVariable String transactionId,
+            @RequestParam String sellerId) {
+        try {
+            Transaction updatedTransaction = transactionService.rejectRequest(transactionId, sellerId);
+            return ResponseEntity.ok(new TransactionDTO(updatedTransaction));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+    
+    /**
      * Delete a transaction.
      * @param id transaction id
      * @return 204 No Content
