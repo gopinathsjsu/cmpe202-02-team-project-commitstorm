@@ -149,6 +149,9 @@ public class TransactionControllerTest {
         // Arrange
         Transaction updatedTransaction = new Transaction();
         updatedTransaction.setId("transaction-123");
+        updatedTransaction.setListing(transaction.getListing());
+        updatedTransaction.setBuyer(transaction.getBuyer());
+        updatedTransaction.setFinalPrice(transaction.getFinalPrice());
         updatedTransaction.setStatus(Transaction.TransactionStatus.COMPLETED);
         when(transactionService.updateTransactionStatus(
             "transaction-123", Transaction.TransactionStatus.COMPLETED))
@@ -214,6 +217,9 @@ public class TransactionControllerTest {
         // Arrange
         Transaction updatedTransaction = new Transaction();
         updatedTransaction.setId("transaction-123");
+        updatedTransaction.setListing(transaction.getListing());
+        updatedTransaction.setBuyer(transaction.getBuyer());
+        updatedTransaction.setFinalPrice(transaction.getFinalPrice());
         updatedTransaction.setStatus(Transaction.TransactionStatus.COMPLETED);
         when(transactionService.markAsSold("transaction-123", "seller-123"))
                 .thenReturn(updatedTransaction);
@@ -246,6 +252,9 @@ public class TransactionControllerTest {
         // Arrange
         Transaction updatedTransaction = new Transaction();
         updatedTransaction.setId("transaction-123");
+        updatedTransaction.setListing(transaction.getListing());
+        updatedTransaction.setBuyer(transaction.getBuyer());
+        updatedTransaction.setFinalPrice(transaction.getFinalPrice());
         updatedTransaction.setStatus(Transaction.TransactionStatus.CANCELLED);
         when(transactionService.rejectRequest("transaction-123", "seller-123"))
                 .thenReturn(updatedTransaction);

@@ -71,8 +71,8 @@ public class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(registerRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value("test-jwt-token"))
-                .andExpect(jsonPath("$.user.email").value("john@example.com"))
-                .andExpect(jsonPath("$.user.name").value("John Doe"));
+                .andExpect(jsonPath("$.email").value("john@example.com"))
+                .andExpect(jsonPath("$.name").value("John Doe"));
         
         verify(authService).existsByEmail("john@example.com");
         verify(authService).register(any(RegisterRequest.class));
@@ -126,7 +126,7 @@ public class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value("test-jwt-token"))
-                .andExpect(jsonPath("$.user.email").value("john@example.com"));
+                .andExpect(jsonPath("$.email").value("john@example.com"));
         
         verify(authService).authenticate("john@example.com", "password123");
         verify(jwtUtil).generateToken("john@example.com");
@@ -188,7 +188,7 @@ public class AuthControllerTest {
                 .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value(token))
-                .andExpect(jsonPath("$.user.email").value("john@example.com"));
+                .andExpect(jsonPath("$.email").value("john@example.com"));
         
         verify(jwtUtil).validateToken(token);
         verify(jwtUtil).extractUsername(token);

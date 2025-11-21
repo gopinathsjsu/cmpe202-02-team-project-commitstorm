@@ -7,7 +7,10 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -56,6 +59,7 @@ public class ReportController {
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<ReportDTO>> getAllReports() {
+        ensureAdminAccess();
         List<ReportDTO> reports = reportService.getAllReports().stream()
                 .map(ReportDTO::new)
                 .collect(Collectors.toList());
@@ -155,6 +159,7 @@ public class ReportController {
     @PatchMapping("/{id}/assign-moderator")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ReportDTO> assignModerator(@PathVariable String id, @RequestParam String moderatorId) {
+        ensureAdminAccess();
         try {
             Report updatedReport = reportService.assignModerator(id, moderatorId);
             return ResponseEntity.ok(new ReportDTO(updatedReport));
@@ -170,6 +175,7 @@ public class ReportController {
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ReportDTO> updateReportStatus(@PathVariable String id, @RequestParam Report.ReportStatus status) {
+        ensureAdminAccess();
         try {
             Report updatedReport = reportService.updateReportStatus(id, status);
             return ResponseEntity.ok(new ReportDTO(updatedReport));
@@ -185,8 +191,18 @@ public class ReportController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteReport(@PathVariable String id) {
+        ensureAdminAccess();
         reportService.deleteReport(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private void ensureAdminAccess() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+        if (!isAdmin) {
+            throw new AccessDeniedException("Admin access required");
+        }
     }
 }
 

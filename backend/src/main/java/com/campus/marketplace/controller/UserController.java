@@ -7,7 +7,10 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -61,6 +64,7 @@ public class UserController {
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserDTO>> getAllUsers() {
+        ensureAdminAccess();
         List<UserDTO> users = userService.getAllUsers().stream()
                 .map(UserDTO::new)
                 .collect(Collectors.toList());
@@ -162,6 +166,7 @@ public class UserController {
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<UserDTO> updateUserStatus(@PathVariable String id, @RequestParam User.UserStatus status) {
+        ensureAdminAccess();
         try {
             User updatedUser = userService.updateUserStatus(id, status);
             return ResponseEntity.ok(new UserDTO(updatedUser));
@@ -179,6 +184,7 @@ public class UserController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+        ensureAdminAccess();
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
@@ -192,5 +198,14 @@ public class UserController {
     public ResponseEntity<Boolean> checkEmailExists(@RequestParam String email) {
         boolean exists = userService.existsByEmail(email);
         return ResponseEntity.ok(exists);
+    }
+
+    private void ensureAdminAccess() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+        if (!isAdmin) {
+            throw new AccessDeniedException("Admin access required");
+        }
     }
 }

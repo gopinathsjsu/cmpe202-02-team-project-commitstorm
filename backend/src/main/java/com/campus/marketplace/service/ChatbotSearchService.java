@@ -49,7 +49,8 @@ public class ChatbotSearchService {
      */
     public ChatbotSearchResult processQuery(String query) {
         if (query == null || query.trim().isEmpty()) {
-            return new ChatbotSearchResult("", false);
+            // Treat empty queries as a fallback scenario to keep behavior consistent
+            return new ChatbotSearchResult("", true);
         }
         
         String interpretedQuery = null;

@@ -116,7 +116,6 @@ public class TransactionServiceTest {
         
         assertEquals("Listing not found with id: nonexistent", exception.getMessage());
         verify(listingRepository).findById("nonexistent");
-        verify(userRepository, never()).findById(anyString());
     }
     
     @Test

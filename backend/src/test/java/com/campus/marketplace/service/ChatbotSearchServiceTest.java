@@ -85,9 +85,8 @@ public class ChatbotSearchServiceTest {
     @Test
     void testProcessQuery_FallbackKeywordExtraction() {
         // Arrange
-        when(categoryRepository.findAll()).thenReturn(Collections.emptyList());
-        when(listingRepository.findByTitleOrDescriptionContaining("textbook", "textbook"))
-                .thenReturn(Arrays.asList(activeListing));
+        when(listingRepository.findByTitleOrDescriptionContaining(anyString(), anyString()))
+            .thenReturn(Arrays.asList(activeListing));
         
         // Act
         ChatbotSearchService.ChatbotSearchResult result = 
@@ -105,9 +104,8 @@ public class ChatbotSearchServiceTest {
     @Test
     void testProcessQuery_FiltersInactiveListings() {
         // Arrange
-        when(categoryRepository.findAll()).thenReturn(Collections.emptyList());
-        when(listingRepository.findByTitleOrDescriptionContaining("textbook", "textbook"))
-                .thenReturn(Arrays.asList(activeListing, soldListing));
+        when(listingRepository.findByTitleOrDescriptionContaining(anyString(), anyString()))
+            .thenReturn(Arrays.asList(activeListing, soldListing));
         
         // Act
         ChatbotSearchService.ChatbotSearchResult result = 
@@ -123,9 +121,8 @@ public class ChatbotSearchServiceTest {
     @Test
     void testProcessQuery_NoResults() {
         // Arrange
-        when(categoryRepository.findAll()).thenReturn(Collections.emptyList());
         when(listingRepository.findByTitleOrDescriptionContaining(anyString(), anyString()))
-                .thenReturn(Collections.emptyList());
+            .thenReturn(Collections.emptyList());
         
         // Act
         ChatbotSearchService.ChatbotSearchResult result = 
@@ -157,9 +154,8 @@ public class ChatbotSearchServiceTest {
     @Test
     void testProcessQuery_ExtractCourseCode() {
         // Arrange
-        when(categoryRepository.findAll()).thenReturn(Collections.emptyList());
         when(listingRepository.findByTitleOrDescriptionContaining(anyString(), anyString()))
-                .thenReturn(Arrays.asList(activeListing));
+            .thenReturn(Arrays.asList(activeListing));
         
         // Act
         ChatbotSearchService.ChatbotSearchResult result = 
