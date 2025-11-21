@@ -3,6 +3,7 @@ package com.campus.marketplace.controller;
 import com.campus.marketplace.entity.User;
 import com.campus.marketplace.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,6 +11,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -18,7 +22,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -49,6 +52,20 @@ public class UserControllerTest {
         testUser.setRole(User.UserRole.USER);
         testUser.setStatus(User.UserStatus.ACTIVE);
     }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private void setAdminAuthentication() {
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                "admin@example.com",
+                null,
+                java.util.List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
     
     @Test
     void testGetUserById_Found() throws Exception {
@@ -78,6 +95,7 @@ public class UserControllerTest {
     void testGetAllUsers() throws Exception {
         List<User> users = Arrays.asList(testUser);
         when(userService.getAllUsers()).thenReturn(users);
+        setAdminAuthentication();
         
         mockMvc.perform(get("/api/users")
                 .contentType(MediaType.APPLICATION_JSON))
@@ -151,6 +169,7 @@ public class UserControllerTest {
     
     @Test
     void testDeleteUser() throws Exception {
+        setAdminAuthentication();
         mockMvc.perform(delete("/api/users/user-123")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());

@@ -4,6 +4,7 @@ import com.campus.marketplace.entity.Report;
 import com.campus.marketplace.entity.User;
 import com.campus.marketplace.service.ReportService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,6 +12,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -54,6 +58,20 @@ public class ReportControllerTest {
         testReport.setTargetType(Report.TargetType.LISTING);
         testReport.setTargetId("listing-123");
     }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private void setAdminAuthentication() {
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                "admin@example.com",
+                null,
+                java.util.List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
     
     @Test
     void testCreateReport() throws Exception {
@@ -91,6 +109,7 @@ public class ReportControllerTest {
     void testGetAllReports() throws Exception {
         List<Report> reports = Arrays.asList(testReport);
         when(reportService.getAllReports()).thenReturn(reports);
+        setAdminAuthentication();
         
         mockMvc.perform(get("/api/reports")
                 .contentType(MediaType.APPLICATION_JSON))
@@ -113,6 +132,7 @@ public class ReportControllerTest {
     void testUpdateReportStatus() throws Exception {
         testReport.setStatus(Report.ReportStatus.RESOLVED);
         when(reportService.updateReportStatus(any(), any())).thenReturn(testReport);
+        setAdminAuthentication();
         
         mockMvc.perform(patch("/api/reports/report-123/status?status=RESOLVED")
                 .contentType(MediaType.APPLICATION_JSON))
@@ -122,6 +142,7 @@ public class ReportControllerTest {
     
     @Test
     void testDeleteReport() throws Exception {
+        setAdminAuthentication();
         mockMvc.perform(delete("/api/reports/report-123")
                 .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNoContent());

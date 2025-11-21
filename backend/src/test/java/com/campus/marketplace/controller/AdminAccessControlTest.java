@@ -17,6 +17,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -81,6 +82,11 @@ public class AdminAccessControlTest {
         testReport.setId("report-123");
         testReport.setTargetType(Report.TargetType.LISTING);
         testReport.setStatus(Report.ReportStatus.OPEN);
+        testReport.setTargetId("listing-123");
+        testReport.setReason("Spam");
+        testReport.setReporter(testUser);
+        testReport.setCreatedAt(LocalDateTime.now());
+        testReport.setUpdatedAt(LocalDateTime.now());
     }
     
     private void setAdminSecurityContext() {
