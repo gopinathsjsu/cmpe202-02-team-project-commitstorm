@@ -8,6 +8,7 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
@@ -67,6 +68,7 @@ public class S3Service {
                     .bucket(bucketName)
                     .key(objectKey)
                     .contentType(contentType)
+                    // Note: ACL is set after upload since bucket may have ACLs disabled
                     .build();
             
             PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
@@ -80,6 +82,9 @@ public class S3Service {
             presigner.close();
             
             logger.info("Generated presigned URL for object: {}", objectKey);
+            
+            // Note: After upload, call makeObjectPublic() to set public-read ACL
+            // if the bucket supports ACLs, or configure bucket policy for public access
             
             return new PresignedUrlResult(presignedUrl, objectKey, getPublicUrl(objectKey));
             
@@ -128,6 +133,30 @@ public class S3Service {
         }
         // Format: https://bucket-name.s3.region.amazonaws.com/object-key
         return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, objectKey);
+    }
+    
+    /**
+     * Set an object's ACL to public-read (for existing objects that were uploaded without public access).
+     * 
+     * @param objectKey S3 object key
+     */
+    public void makeObjectPublic(String objectKey) {
+        if (bucketName == null || bucketName.isEmpty()) {
+            return;
+        }
+        
+        try {
+            S3Client s3Client = createS3Client();
+            s3Client.putObjectAcl(b -> b
+                .bucket(bucketName)
+                .key(objectKey)
+                .acl(ObjectCannedACL.PUBLIC_READ)
+            );
+            s3Client.close();
+            logger.info("Set public-read ACL for S3 object: {}", objectKey);
+        } catch (Exception e) {
+            logger.error("Error setting ACL for S3 object: {}", objectKey, e);
+        }
     }
     
     /**
@@ -224,4 +253,3 @@ public class S3Service {
     }
     
 }
-
