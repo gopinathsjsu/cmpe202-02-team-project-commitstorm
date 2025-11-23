@@ -1,4 +1,7 @@
 -- Add password column to users table
+-- Note: If column already exists, this migration will be skipped by Flyway
+-- based on the schema history. If re-running manually, wrap in error handling.
+
 ALTER TABLE users ADD COLUMN password VARCHAR(255) NOT NULL DEFAULT '';
 
 -- Update existing users with a default password (in production, you'd want to handle this differently)
