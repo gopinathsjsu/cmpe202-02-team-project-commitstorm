@@ -2,8 +2,22 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router";
 import Post from "./post.tsx";
 import type {ListingDetailProps} from "./post.tsx";
-import { getListings } from "../services/listingsService";
+import { 
+  getListings, 
+  getListingsBySeller,
+  getListingsByCategory,
+  getListingsByStatus,
+  getListingsByCondition,
+  getListingsByPriceRange
+} from "../services/listingsService";
+import Loader from "./Loader";
+import ListingFilters from "./ListingFilters";
 import '../css/Marketplace.css';
+
+type MarketplaceProps = {
+  onMessageVendor?: (data: { listingId: string, recipientId: string, recipientName: string, listingTitle: string }) => void;
+  onReportPost?: (data: { listingId: string, listingTitle: string }) => void;
+};
 
 /**
  * Map API listing response to Post component props
@@ -75,12 +89,12 @@ const mapListingToPostProps = (listing) => {
     condition: listing.condition || 'GOOD',
     category: listing.categoryName || 'Uncategorized',
     title: listing.title || '',
-    sellerId: listing.sellerId,
-    listingId: listing.id,
+    sellerId: listing.sellerId, // This is the seller's user ID (userId1)
+    listingId: listing.id, // This is the actual listing ID from API
   };
 };
 
-export const Marketplace = () => {
+export const Marketplace = ({ onMessageVendor, onReportPost }: MarketplaceProps) => {
   const [searchParams] = useSearchParams();
   const [allListings, setAllListings] = useState<ListingDetailProps[]>([]);
   const [displayedListings, setDisplayedListings] = useState<ListingDetailProps[]>([]);
@@ -88,30 +102,100 @@ export const Marketplace = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const [filters, setFilters] = useState({
+    status: '',
+    condition: '',
+    categoryId: '',
+    sellerId: '',
+    minPrice: '',
+    maxPrice: '',
+  });
   const observerTarget = useRef<HTMLDivElement>(null);
 
   const ITEMS_PER_PAGE = 12;
+  const filterTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Fetch listings with filters
   useEffect(() => {
-    const fetchListings = async (searchQuery = '') => {
-      setLoading(true);
-      setError(null);
-      try {
-        console.log('Fetching listings from API...', searchQuery ? `with search: ${searchQuery}` : '');
-        const data = await getListings(searchQuery);
+    // Clear any existing timeout
+    if (filterTimeoutRef.current) {
+      clearTimeout(filterTimeoutRef.current);
+    }
+
+    // For price filters, debounce the API call
+    const hasPriceInput = filters.minPrice || filters.maxPrice;
+    const delay = hasPriceInput ? 800 : 0; // Wait 800ms for price inputs, immediate for others
+
+    filterTimeoutRef.current = setTimeout(() => {
+      const fetchListings = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const searchQuery = searchParams.get('search') || '';
+          let data: any[] = [];
+
+          // Determine which API endpoint to use based on active filters
+          // Price range requires both min and max to be set
+          const hasPriceRange = filters.minPrice && filters.maxPrice;
+          const hasFilters = filters.status || filters.condition || filters.categoryId || filters.sellerId || hasPriceRange;
+
+        if (hasFilters) {
+          // Apply filters sequentially (combine results)
+          const filterPromises: Promise<any[]>[] = [];
+
+          if (filters.sellerId) {
+            filterPromises.push(getListingsBySeller(filters.sellerId));
+          }
+          if (filters.categoryId) {
+            filterPromises.push(getListingsByCategory(filters.categoryId));
+          }
+          if (filters.status) {
+            filterPromises.push(getListingsByStatus(filters.status));
+          }
+          if (filters.condition) {
+            filterPromises.push(getListingsByCondition(filters.condition));
+          }
+          // Only call price range API if both min and max are provided
+          if (hasPriceRange) {
+            const minPrice = Number(filters.minPrice);
+            const maxPrice = Number(filters.maxPrice);
+            filterPromises.push(getListingsByPriceRange(minPrice, maxPrice));
+          }
+
+          // If multiple filters, get results from each and find intersection
+          if (filterPromises.length > 0) {
+            const results: any[][] = await Promise.all(filterPromises);
+            // Find listings that match ALL filters (intersection)
+            if (results.length === 1) {
+              data = results[0];
+            } else {
+              // Find common listings across all filter results
+              const listingIds = results.map(result => 
+                new Set(result.map((listing: any) => listing.id))
+              );
+              const commonIds = listingIds.reduce((acc, curr) => {
+                return new Set([...acc].filter(id => curr.has(id)));
+              });
+              data = results[0].filter((listing: any) => commonIds.has(listing.id));
+            }
+          } else {
+            // No filters, use regular search
+            data = await getListings(searchQuery);
+          }
+        } else {
+          // No filters, use regular search
+          data = await getListings(searchQuery);
+        }
+
         console.log('Listings fetched successfully:', data);
         
-        // Filter listings by ACTIVE status only (no user filtering - marketplace is public)
-        const activeListings = data
-          .filter((listing) => {
-            return listing.status === 'ACTIVE';
-          })
-          .map(mapListingToPostProps);
+        // Map listings to Post component props
+        const mappedListings = data.map(mapListingToPostProps);
         
-        setAllListings(activeListings);
+        setAllListings(mappedListings);
         // Display first batch
-        setDisplayedListings(activeListings.slice(0, ITEMS_PER_PAGE));
-        setHasMore(activeListings.length > ITEMS_PER_PAGE);
+        setDisplayedListings(mappedListings.slice(0, ITEMS_PER_PAGE));
+        setHasMore(mappedListings.length > ITEMS_PER_PAGE);
       } catch (err: any) {
         console.error('Error fetching listings:', err);
         let errorMessage = 'Failed to load listings. Please try again later.';
@@ -126,16 +210,21 @@ export const Marketplace = () => {
           errorMessage = err.message;
         }
         
-        setError(errorMessage);
-      } finally {
-        setLoading(false);
+          setError(errorMessage);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchListings();
+    }, delay);
+
+    return () => {
+      if (filterTimeoutRef.current) {
+        clearTimeout(filterTimeoutRef.current);
       }
     };
-
-    // Get search query from URL params
-    const searchQuery = searchParams.get('search') || '';
-    fetchListings(searchQuery);
-  }, [searchParams]);
+  }, [searchParams, filters]);
 
   const loadMore = useCallback(() => {
     if (loadingMore || !hasMore) return;
@@ -182,9 +271,8 @@ export const Marketplace = () => {
 
   if (loading) {
     return (
-      <div className="marketplace-container loading-container">
-        <div className="loading-spinner"></div>
-        <p style={{ marginTop: '1rem' }}>Loading listings...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader text="Loading listings..." />
       </div>
     );
   }
@@ -208,23 +296,44 @@ export const Marketplace = () => {
     );
   }
 
+  const handleFilterChange = (newFilters: any) => {
+    setFilters(newFilters);
+    // Reset pagination when filters change
+    setDisplayedListings([]);
+    setHasMore(true);
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      status: '',
+      condition: '',
+      categoryId: '',
+      sellerId: '',
+      minPrice: '',
+      maxPrice: '',
+    });
+  };
+
   return (
-    <>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <ListingFilters 
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        onClearFilters={handleClearFilters}
+      />
+      
       <div className="marketplace-container">
         {displayedListings.map((listing) => (
-          <Post key={listing.listingId || listing.id} {...listing} />
+          <Post key={listing.listingId || listing.id} {...listing} onMessageVendor={onMessageVendor} onReportPost={onReportPost} />
         ))}
       </div>
       {hasMore && (
-        <div ref={observerTarget} className="loading-container" style={{ padding: '2rem' }}>
+        <div ref={observerTarget} style={{ padding: '2rem' }}>
           {loadingMore && (
-            <>
-              <div className="loading-spinner"></div>
-              <p style={{ marginTop: '1rem' }}>Loading more listings...</p>
-            </>
+            <Loader text="Loading more listings..." />
           )}
         </div>
       )}
-    </>
+    </div>
   );
 }

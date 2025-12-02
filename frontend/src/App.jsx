@@ -4,8 +4,11 @@ import './css/App.css'
 import Header from './components/header'
 import Home from './components/home'
 import { Marketplace } from './components/marketplace';
+import { MyProfileModal, MyListingsModal, MyMessagesModal } from './components/ProfileModals';
 import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';
+import Chat from './components/Chat';
+import ReportModal from './components/ReportModal';
 import { setAuthToken, clearAuthToken } from './services/apiClient';
 import { logout as logoutAPI } from './services/authService';
 
@@ -14,6 +17,9 @@ function AppContent() {
   const location = useLocation();
   const [showAuth, setShowAuth] = useState(null); // null, 'login', or 'signup'
   const [user, setUser] = useState(null);
+  const [chatData, setChatData] = useState(null); // { listingId, recipientId, recipientName, listingTitle }
+  const [showProfileModal, setShowProfileModal] = useState(null); // null, 'profile', 'listings', 'messages'
+  const [reportData, setReportData] = useState(null); // { listingId, listingTitle }
 
   // Check for existing auth on app load
   useEffect(() => {
@@ -87,6 +93,9 @@ function AppContent() {
         onLoginClick={() => setShowAuth('login')} 
         onSignupClick={() => setShowAuth('signup')}
         onLogout={handleLogout}
+        onMyProfileClick={() => setShowProfileModal('profile')}
+        onMyListingsClick={() => setShowProfileModal('listings')}
+        onMyMessagesClick={() => setShowProfileModal('messages')}
       />
       
       {/* Auth Modal Overlay */}
@@ -111,8 +120,52 @@ function AppContent() {
       
       <Routes>
         <Route path="/" element={<Home />}/>
-        <Route path="/marketplace" element={<Marketplace/>}/>
+        <Route path="/marketplace" element={<Marketplace onMessageVendor={setChatData} onReportPost={setReportData}/>}/>
       </Routes>
+
+      {/* Profile Modals */}
+      {showProfileModal === 'profile' && user && (
+        <MyProfileModal
+          user={user}
+          onClose={() => setShowProfileModal(null)}
+          setUser={setUser}
+        />
+      )}
+      {showProfileModal === 'listings' && user && (
+        <MyListingsModal
+          user={user}
+          onClose={() => setShowProfileModal(null)}
+        />
+      )}
+      {showProfileModal === 'messages' && user && (
+        <MyMessagesModal
+          user={user}
+          onClose={() => setShowProfileModal(null)}
+          onMessageVendor={setChatData}
+        />
+      )}
+
+      {/* Chat Modal */}
+      {chatData && user && (
+        <Chat
+          listingId={chatData.listingId}
+          recipientId={chatData.recipientId}
+          recipientName={chatData.recipientName}
+          listingTitle={chatData.listingTitle}
+          currentUserId={user.id}
+          onClose={() => setChatData(null)}
+        />
+      )}
+
+      {/* Report Modal */}
+      {reportData && user && (
+        <ReportModal
+          listingId={reportData.listingId}
+          listingTitle={reportData.listingTitle}
+          reporterId={user.id}
+          onClose={() => setReportData(null)}
+        />
+      )}
     </div>
   );
 }

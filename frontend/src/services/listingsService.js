@@ -7,11 +7,12 @@ import apiClient from './apiClient.js';
  */
 export const getListings = async (searchQuery = '') => {
   try {
-    const params = {};
+    let url = '/api/listings';
     if (searchQuery && searchQuery.trim()) {
-      params.search = searchQuery.trim();
+      // Use search endpoint with searchTerm parameter
+      url = `/api/listings/search?searchTerm=${encodeURIComponent(searchQuery.trim())}`;
     }
-    const response = await apiClient.get('/api/listings', { params });
+    const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
     throw {
@@ -33,6 +34,99 @@ export const getListingById = async (listingId) => {
   } catch (error) {
     throw {
       message: error.message || 'Failed to fetch listing',
+      status: error.status || 500,
+    };
+  }
+};
+
+/**
+ * Get listings by seller ID
+ * @param {string} sellerId - Seller user ID
+ * @returns {Promise<Array>} Array of listing objects
+ */
+export const getListingsBySeller = async (sellerId) => {
+  try {
+    const response = await apiClient.get(`/api/listings/seller/${sellerId}`);
+    return response.data;
+  } catch (error) {
+    throw {
+      message: error.message || 'Failed to fetch listings by seller',
+      status: error.status || 500,
+    };
+  }
+};
+
+/**
+ * Get listings by category ID
+ * @param {string} categoryId - Category ID
+ * @returns {Promise<Array>} Array of listing objects
+ */
+export const getListingsByCategory = async (categoryId) => {
+  try {
+    const response = await apiClient.get(`/api/listings/category/${categoryId}`);
+    return response.data;
+  } catch (error) {
+    throw {
+      message: error.message || 'Failed to fetch listings by category',
+      status: error.status || 500,
+    };
+  }
+};
+
+/**
+ * Get listings by status
+ * @param {string} status - Status (ACTIVE, SOLD, PENDING, DRAFT)
+ * @returns {Promise<Array>} Array of listing objects
+ */
+export const getListingsByStatus = async (status) => {
+  try {
+    const response = await apiClient.get(`/api/listings/status/${status}`);
+    return response.data;
+  } catch (error) {
+    throw {
+      message: error.message || 'Failed to fetch listings by status',
+      status: error.status || 500,
+    };
+  }
+};
+
+/**
+ * Get listings by condition
+ * @param {string} condition - Condition (NEW, LIKE_NEW, GOOD, FAIR, POOR)
+ * @returns {Promise<Array>} Array of listing objects
+ */
+export const getListingsByCondition = async (condition) => {
+  try {
+    const response = await apiClient.get(`/api/listings/condition/${condition}`);
+    return response.data;
+  } catch (error) {
+    throw {
+      message: error.message || 'Failed to fetch listings by condition',
+      status: error.status || 500,
+    };
+  }
+};
+
+/**
+ * Get listings by price range
+ * @param {number} minPrice - Minimum price
+ * @param {number} maxPrice - Maximum price
+ * @returns {Promise<Array>} Array of listing objects
+ */
+export const getListingsByPriceRange = async (minPrice, maxPrice) => {
+  try {
+    const params = {};
+    if (minPrice !== undefined && minPrice !== null && minPrice !== '') {
+      params.minPrice = minPrice;
+    }
+    if (maxPrice !== undefined && maxPrice !== null && maxPrice !== '') {
+      params.maxPrice = maxPrice;
+    }
+    const response = await apiClient.get('/api/listings/price-range', { params });
+    return response.data;
+  } catch (error) {
+    throw {
+      message: error.message || 'Failed to fetch listings by price range',
       status: error.status || 500,
     };
   }

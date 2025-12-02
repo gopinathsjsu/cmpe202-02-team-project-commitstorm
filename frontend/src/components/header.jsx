@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 
-const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout }) => {
+const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout, onMyProfileClick, onMyListingsClick, onMyMessagesClick }) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const navigate = useNavigate();
@@ -57,7 +57,12 @@ const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout }) => {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <div className="flex-shrink-0">
-              <h1 className="text-2xl font-bold text-white">Commit Storm Market</h1>
+              <button
+                onClick={() => navigate('/marketplace')}
+                className="text-2xl font-bold text-white hover:text-indigo-400 transition-colors cursor-pointer"
+              >
+                Commit Storm Market
+              </button>
             </div>
             
             {/* Navigation Links */}
@@ -88,17 +93,47 @@ const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout }) => {
               </button>
               
               {showProfileDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 z-50 border border-gray-700">
+                <div className="absolute right-0 top-full mt-2 w-56 bg-gray-800 rounded-lg shadow-2xl py-2 z-50 border border-gray-700 overflow-hidden">
                   {user ? (
-                    <button
-                      onClick={() => {
-                        setShowProfileDropdown(false);
-                        onLogout();
-                      }}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
-                    >
-                      Logout
-                    </button>
+                    <>
+                      <button
+                        onClick={() => {
+                          setShowProfileDropdown(false);
+                          if (onMyProfileClick) onMyProfileClick();
+                        }}
+                        className="block w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                      >
+                        My Profile
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowProfileDropdown(false);
+                          if (onMyListingsClick) onMyListingsClick();
+                        }}
+                        className="block w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                      >
+                        My Listings
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowProfileDropdown(false);
+                          if (onMyMessagesClick) onMyMessagesClick();
+                        }}
+                        className="block w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                      >
+                        View My Messages
+                      </button>
+                      <div className="border-t border-gray-700 my-1"></div>
+                      <button
+                        onClick={() => {
+                          setShowProfileDropdown(false);
+                          onLogout();
+                        }}
+                        className="block w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-gray-700 hover:text-red-300 transition-colors"
+                      >
+                        Logout
+                      </button>
+                    </>
                   ) : (
                     <>
                       <button

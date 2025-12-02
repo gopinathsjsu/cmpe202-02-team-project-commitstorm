@@ -15,6 +15,8 @@ export type ListingDetailProps = {
     title?: string,
     sellerId?: string,
     listingId?: string,
+    onMessageVendor?: (data: { listingId: string, recipientId: string, recipientName: string, listingTitle: string }) => void;
+    onReportPost?: (data: { listingId: string, listingTitle: string }) => void;
 }
 
 function Post( props: ListingDetailProps ) {
@@ -31,15 +33,50 @@ function Post( props: ListingDetailProps ) {
         errorHandledRef.current = false;
     }, [props.imageUrl]);
 
-    function sendMessageToVendor(vendorId: string | number) {
-        // Logic to send a message to the vendor
-        console.log(`Message sent to vendor ${vendorId}`);
-    }
+    const sendMessageToVendor = (vendorId: string | number) => {
+        // Check if user is logged in
+        const userData = localStorage.getItem('auth.user');
+        if (!userData) {
+            alert('Please log in to message vendors');
+            return;
+        }
 
-    function reportPost(postId: string | number) {
-        // Logic to report the post
-        console.log(`Post ${postId} reported.`);
-    }
+        // listingId should be the actual listing.id from the API (UUID string)
+        // This is already set in marketplace.tsx as listingId: listing.id
+        const listingId = props.listingId;
+        
+        if (!props.onMessageVendor || !listingId) {
+            console.log('Cannot send message: missing data', { listingId, hasCallback: !!props.onMessageVendor });
+            return;
+        }
+        
+        // vendorId (sellerId) is userId1, current user (from login) will be userId2
+        props.onMessageVendor({
+            listingId: String(listingId), // Actual listing ID from API
+            recipientId: String(vendorId), // sellerId (userId1)
+            recipientName: props.username || 'Vendor',
+            listingTitle: props.title || 'Listing',
+        });
+    };
+
+    const reportPost = (listingId: string | number) => {
+        // Check if user is logged in
+        const userData = localStorage.getItem('auth.user');
+        if (!userData) {
+            alert('Please log in to report posts');
+            return;
+        }
+
+        if (!props.onReportPost || !listingId) {
+            console.log('Cannot report post: missing data');
+            return;
+        }
+        
+        props.onReportPost({
+            listingId: String(listingId),
+            listingTitle: props.title || 'Listing',
+        });
+    };
 
     // Use sellerId if available (from API), otherwise fall back to userId
     const vendorId = props?.sellerId || props?.userId;
