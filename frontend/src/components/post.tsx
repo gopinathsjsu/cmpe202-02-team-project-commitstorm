@@ -20,11 +20,15 @@ export type ListingDetailProps = {
 function Post( props: ListingDetailProps ) {
     const [imageError, setImageError] = useState(false);
     const [imageLoading, setImageLoading] = useState(true);
+    const [imageSrc, setImageSrc] = useState<string>(props?.imageUrl || 'https://via.placeholder.com/400x200?text=No+Image');
+    const errorHandledRef = React.useRef(false);
 
     // Reset image states when props change
     useEffect(() => {
         setImageLoading(true);
         setImageError(false);
+        setImageSrc(props?.imageUrl || 'https://via.placeholder.com/400x200?text=No+Image');
+        errorHandledRef.current = false;
     }, [props.imageUrl]);
 
     function sendMessageToVendor(vendorId: string | number) {
@@ -61,7 +65,7 @@ function Post( props: ListingDetailProps ) {
                     </div>
                 )}
                 <img 
-                    src={imageError ? 'https://via.placeholder.com/400x200?text=No+Image' : (props?.imageUrl || 'https://via.placeholder.com/400x200?text=No+Image')} 
+                    src={imageSrc || 'https://via.placeholder.com/400x200?text=No+Image'} 
                     alt={props?.title || "Post Image"} 
                     className="post-image"
                     style={{ 
@@ -74,11 +78,25 @@ function Post( props: ListingDetailProps ) {
                         setImageError(false);
                     }}
                     onError={(e) => {
-                        console.error('Image failed to load:', props?.imageUrl);
+                        // Prevent infinite loop by checking if we've already handled this error
+                        if (errorHandledRef.current) {
+                            return;
+                        }
+                        
+                        // Only log error if it's not the placeholder
+                        if (props?.imageUrl && props.imageUrl !== 'https://via.placeholder.com/400x200?text=No+Image') {
+                            console.error('Image failed to load:', props?.imageUrl);
+                        }
+                        
+                        errorHandledRef.current = true;
                         setImageError(true);
                         setImageLoading(false);
-                        // Force load placeholder
-                        e.currentTarget.src = 'https://via.placeholder.com/400x200?text=No+Image';
+                        
+                        // Set placeholder only if current src is not already the placeholder
+                        const placeholderUrl = 'https://via.placeholder.com/400x200?text=No+Image';
+                        if (e.currentTarget.src !== placeholderUrl) {
+                            setImageSrc(placeholderUrl);
+                        }
                     }}
                 />
             </div>

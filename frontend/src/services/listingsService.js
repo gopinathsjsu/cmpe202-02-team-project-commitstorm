@@ -2,11 +2,16 @@ import apiClient from './apiClient.js';
 
 /**
  * Get all listings from the API
+ * @param {string} searchQuery - Optional search query to filter listings
  * @returns {Promise<Array>} Array of listing objects
  */
-export const getListings = async () => {
+export const getListings = async (searchQuery = '') => {
   try {
-    const response = await apiClient.get('/api/listings');
+    const params = {};
+    if (searchQuery && searchQuery.trim()) {
+      params.search = searchQuery.trim();
+    }
+    const response = await apiClient.get('/api/listings', { params });
     return response.data;
   } catch (error) {
     throw {

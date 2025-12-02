@@ -69,8 +69,10 @@ function AppContent() {
   const isHome = location.pathname === '/';
 
   // Protect routes - redirect to home if not authenticated
+  // Note: /marketplace is now a public route
   useEffect(() => {
-    const isProtectedRoute = location.pathname !== '/';
+    const publicRoutes = ['/', '/marketplace'];
+    const isProtectedRoute = !publicRoutes.includes(location.pathname);
     const token = localStorage.getItem('auth.token');
     if (isProtectedRoute && !user && !token) {
       navigate('/');

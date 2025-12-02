@@ -1,7 +1,54 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router';
 
 const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout }) => {
   const [searchQuery, setSearchQuery] = useState('')
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false)
+  const navigate = useNavigate();
+  const location = useLocation();
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowProfileDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Get search query from URL if on marketplace
+  useEffect(() => {
+    if (location.pathname === '/marketplace') {
+      const params = new URLSearchParams(location.search);
+      const searchParam = params.get('search') || '';
+      setSearchQuery(searchParam);
+    }
+  }, [location]);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (location.pathname === '/marketplace') {
+      // Update URL with search query
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) {
+        params.set('search', searchQuery.trim());
+      }
+      navigate(`/marketplace?${params.toString()}`);
+    } else {
+      // Navigate to marketplace with search query
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) {
+        params.set('search', searchQuery.trim());
+      }
+      navigate(`/marketplace?${params.toString()}`);
+    }
+  };
 
   return (
     <div>
@@ -28,34 +75,53 @@ const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout }) => {
               </div>
             </div>
             
-            {/* Auth Buttons */}
-            <div className="flex items-center space-x-4">
-              {isHome ? (
-                // On home page (/): Always show login/signup buttons (public route)
-                <>
-                  <button 
-                    onClick={onLoginClick}
-                    className="border border-gray-300 text-gray-300 hover:text-white hover:border-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-                  >
-                    Log In
-                  </button>
-                  <button 
-                    onClick={onSignupClick}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-                  >
-                    Sign Up
-                  </button>
-                </>
-              ) : (
-                // On protected routes (e.g., /marketplace): Show logout button if authenticated
-                user && (
-                  <button 
-                    onClick={onLogout}
-                    className="border border-gray-300 text-gray-300 hover:text-white hover:border-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-                  >
-                    Logout
-                  </button>
-                )
+            {/* Profile Dropdown */}
+            <div className="flex items-center space-x-4 relative" ref={dropdownRef}>
+              <button
+                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                className="border border-gray-300 text-gray-300 hover:text-white hover:border-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2"
+              >
+                <span>Profile</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {showProfileDropdown && (
+                <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 z-50 border border-gray-700">
+                  {user ? (
+                    <button
+                      onClick={() => {
+                        setShowProfileDropdown(false);
+                        onLogout();
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                    >
+                      Logout
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          setShowProfileDropdown(false);
+                          onLoginClick();
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                      >
+                        Log In
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowProfileDropdown(false);
+                          onSignupClick();
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                      >
+                        Sign Up
+                      </button>
+                    </>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -66,7 +132,7 @@ const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout }) => {
           
           {/* Search Bar */}
           <div className="max-w-2xl mx-auto">
-            <div className="flex flex-col sm:flex-row gap-4">
+            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
               <input
                 type="text"
                 placeholder="Search for a textbook..."
@@ -74,10 +140,13 @@ const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout }) => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1 px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
-              <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+              <button 
+                type="submit"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-lg font-medium transition-colors"
+              >
                 Search
               </button>
-            </div>
+            </form>
           </div>
         </div>
       </section>

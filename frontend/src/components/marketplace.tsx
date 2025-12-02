@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "react-router";
 import Post from "./post.tsx";
 import type {ListingDetailProps} from "./post.tsx";
 import { getListings } from "../services/listingsService";
@@ -80,6 +81,7 @@ const mapListingToPostProps = (listing) => {
 };
 
 export const Marketplace = () => {
+  const [searchParams] = useSearchParams();
   const [allListings, setAllListings] = useState<ListingDetailProps[]>([]);
   const [displayedListings, setDisplayedListings] = useState<ListingDetailProps[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,37 +93,25 @@ export const Marketplace = () => {
   const ITEMS_PER_PAGE = 12;
 
   useEffect(() => {
-    const fetchListings = async () => {
+    const fetchListings = async (searchQuery = '') => {
       setLoading(true);
       setError(null);
       try {
-        // Get logged-in user's ID from localStorage
-        const userData = localStorage.getItem('auth.user');
-        const user = userData ? JSON.parse(userData) : null;
-        const userId = user?.id;
-
-        if (!userId) {
-          setError('Please log in to view your listings.');
-          setLoading(false);
-          return;
-        }
-
-        console.log('Fetching listings from API...');
-        const data = await getListings();
+        console.log('Fetching listings from API...', searchQuery ? `with search: ${searchQuery}` : '');
+        const data = await getListings(searchQuery);
         console.log('Listings fetched successfully:', data);
         
-        // Filter listings by logged-in user's sellerId and ACTIVE status
-        const userListings = data
+        // Filter listings by ACTIVE status only (no user filtering - marketplace is public)
+        const activeListings = data
           .filter((listing) => {
-            // Filter by user's ID (sellerId matches user id) and ACTIVE status
-            return listing.status === 'ACTIVE' && listing.sellerId === userId;
+            return listing.status === 'ACTIVE';
           })
           .map(mapListingToPostProps);
         
-        setAllListings(userListings);
+        setAllListings(activeListings);
         // Display first batch
-        setDisplayedListings(userListings.slice(0, ITEMS_PER_PAGE));
-        setHasMore(userListings.length > ITEMS_PER_PAGE);
+        setDisplayedListings(activeListings.slice(0, ITEMS_PER_PAGE));
+        setHasMore(activeListings.length > ITEMS_PER_PAGE);
       } catch (err: any) {
         console.error('Error fetching listings:', err);
         let errorMessage = 'Failed to load listings. Please try again later.';
@@ -142,8 +132,10 @@ export const Marketplace = () => {
       }
     };
 
-    fetchListings();
-  }, []);
+    // Get search query from URL params
+    const searchQuery = searchParams.get('search') || '';
+    fetchListings(searchQuery);
+  }, [searchParams]);
 
   const loadMore = useCallback(() => {
     if (loadingMore || !hasMore) return;
