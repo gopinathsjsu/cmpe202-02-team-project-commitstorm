@@ -1,6 +1,7 @@
 package com.campus.marketplace.repository;
 
-import com.campus.marketplace.entity.Message;
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -8,7 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
+import com.campus.marketplace.entity.Message;
 
 @Repository
 public interface MessageRepository extends JpaRepository<Message, String> {
@@ -31,6 +32,16 @@ public interface MessageRepository extends JpaRepository<Message, String> {
     List<Message> findConversationForListing(@Param("listingId") String listingId, 
                                            @Param("userId1") String userId1, 
                                            @Param("userId2") String userId2);
+    
+    // Get conversation for a specific listing between two users with pagination
+    @Query("SELECT m FROM Message m WHERE m.listing.id = :listingId AND " +
+           "((m.fromUser.id = :userId1 AND m.toUser.id = :userId2) OR " +
+           "(m.fromUser.id = :userId2 AND m.toUser.id = :userId1)) " +
+           "ORDER BY m.createdAt ASC")
+    Page<Message> findConversationForListing(@Param("listingId") String listingId, 
+                                           @Param("userId1") String userId1, 
+                                           @Param("userId2") String userId2,
+                                           Pageable pageable);
     
     // Get messages sent by a user
     List<Message> findByFromUserIdOrderByCreatedAtDesc(String fromUserId);

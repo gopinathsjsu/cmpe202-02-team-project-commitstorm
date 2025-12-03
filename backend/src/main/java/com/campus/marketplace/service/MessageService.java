@@ -118,6 +118,19 @@ public class MessageService {
                 .collect(Collectors.toList());
     }
     
+    // Get conversation for a specific listing between two users with pagination
+    public Page<MessageDTO> getConversationForListing(String listingId, String userId1, String userId2, String currentUserId, int page, int size) {
+        // Validate that current user is one of the participants
+        if (!currentUserId.equals(userId1) && !currentUserId.equals(userId2)) {
+            throw new RuntimeException("Access denied: You can only view conversations you're part of");
+        }
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Message> messages = messageRepository.findConversationForListing(listingId, userId1, userId2, pageable);
+        
+        return messages.map(MessageDTO::new);
+    }
+    
     // Get messages sent by user
     public List<MessageDTO> getMessagesSentByUser(String userId) {
         List<Message> messages = messageRepository.findByFromUserIdOrderByCreatedAtDesc(userId);
