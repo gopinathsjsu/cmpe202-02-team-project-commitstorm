@@ -4,6 +4,45 @@ A short, copy‑paste guide your teammates can follow to get the backend running
 
 ---
 
+## Product vision & release themes
+- **Vision**: provide a trusted, campus-focused marketplace where students can safely buy, sell, or trade essentials with minimal friction.
+- **Guiding outcomes**: reduce time-to-list by 30%, keep disputed transactions under 1%, and surface relevant listings within two clicks/searches.
+- **Upcoming release themes** (update each PI):
+  1. **Trust & Safety** — identity verification, fraud detection, audit trails.
+  2. **Liquidity Boost** — smarter search, saved alerts, streamlined listing creation (media uploads, templates).
+  3. **Operational Excellence** — support tooling, observability, self-service runbooks.
+
+Keep the roadmap synchronized with your planning board so each sprint demo ties directly to one of these outcomes.
+
+## Agile workflow overview
+
+### Backlog & planning
+- Break features into INVEST-friendly user stories in your issue tracker; link to code assets (e.g., `backend/src/main/java/...`) and docs (`API_DOCUMENTATION.md`, `TESTING.md`).
+- Maintain a **rolling two-sprint** ready backlog. Stories are “Ready” when UX copy, API contracts, data impacts, and test approach are captured (see Definition of Ready in `backend/TESTING.md`).
+- Use epics that mirror the release themes above, and record dependencies (DB migration IDs, third-party keys) inside the ticket description.
+
+### Team roles
+- **Product Owner** curates backlog priority, confirms acceptance criteria during reviews.
+- **Engineering** (backend, frontend, QA, DevOps) swarm on sprint goals; rotate on-call/support per `start.sh` + infra knowledge.
+- **Stakeholders** (support, security, faculty advisors) attend reviews for rapid feedback.
+
+### Sprint cadence & ceremonies
+- **Backlog refinement (weekly)**: prune stories, size with planning poker, confirm data/env prerequisites.
+- **Sprint planning (biweekly)**: commit to capacity-based scope, note Definition of Done checklist for each story.
+- **Daily standup**: blockers first (e.g., failing `mvn test`, Testcontainers, k6 thresholds) then plan for the day.
+- **Sprint review**: demo using Swagger/Postman or UI walkthroughs; show metrics (velocity, test counts, latency trends).
+- **Retrospective**: capture 1–2 action items, track them as chores in the backlog with owners/due dates.
+
+### Metrics & transparency
+- Auto-publish Surefire/Jacoco summaries and k6 smoke thresholds from CI; attach to sprint review notes.
+- Track velocity, cycle time, escaped defects, and infra incidents in the runbook so trends are visible over multiple sprints.
+
+### Stakeholder feedback loop
+- Immediately translate review feedback into backlog items tagged with the relevant epic.
+- Keep the Postman collection and k6 scripts in sync with shipped APIs so stakeholders can self-validate in staging.
+
+---
+
 ## 1) Prerequisites
 - **Docker Desktop** (macOS/Windows) or Docker Engine (Linux)
 - **Java 17** (`java -version` should show 17.x)
