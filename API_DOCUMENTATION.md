@@ -5,34 +5,41 @@ This is a Spring Boot REST API for a campus marketplace application that allows 
 
 ## Base URL
 ```
-http://localhost:8080/api
+http://ec2-16-146-79-242.us-west-2.compute.amazonaws.com/api
 ```
 
+Swagger UI (deployed): `http://ec2-16-146-79-242.us-west-2.compute.amazonaws.com/swagger-ui/index.html`
 ## API Endpoints
+
+### Authentication
+- `POST /api/auth/register` – Register a new user account
+- `POST /api/auth/login` – Authenticate and receive a JWT token
+- `GET /api/auth/me` – Return the user associated with the bearer token
+- `POST /api/auth/logout` – Client-side logout hint for JWT sessions
 
 ### Users
 - `POST /api/users` - Create a new user
-- `GET /api/users` - Get all users
+- `GET /api/users` - Get all users *(ADMIN only)*
 - `GET /api/users/{id}` - Get user by ID
 - `GET /api/users/email/{email}` - Get user by email
 - `GET /api/users/role/{role}` - Get users by role (USER, ADMIN)
 - `GET /api/users/status/{status}` - Get users by status (ACTIVE, SUSPENDED, BANNED)
 - `GET /api/users/search/name?name={name}` - Search users by name
 - `GET /api/users/search/email?email={email}` - Search users by email
+- `GET /api/users/exists/email?email={email}` - Check if email already exists
 - `PUT /api/users/{id}` - Update user
-- `PATCH /api/users/{id}/status?status={status}` - Update user status
-- `DELETE /api/users/{id}` - Delete user
-- `GET /api/users/exists/email?email={email}` - Check if email exists
+- `PATCH /api/users/{id}/status?status={status}` - Update user status *(ADMIN only)*
+- `DELETE /api/users/{id}` - Delete user *(ADMIN only)*
 
 ### Categories
 - `POST /api/categories` - Create a new category
 - `GET /api/categories` - Get all categories
 - `GET /api/categories/{id}` - Get category by ID
-- `GET /api/categories/name/{name}` - Get category by name
-- `GET /api/categories/search?name={name}` - Search categories by name
+- `GET /api/categories/name/{name}` - Get category by exact name
+- `GET /api/categories/search?name={name}` - Search categories by partial name
+- `GET /api/categories/exists/name?name={name}` - Check if a category name already exists
 - `PUT /api/categories/{id}` - Update category
 - `DELETE /api/categories/{id}` - Delete category
-- `GET /api/categories/exists/name?name={name}` - Check if category name exists
 
 ### Listings
 - `POST /api/listings` - Create a new listing
@@ -42,33 +49,54 @@ http://localhost:8080/api
 - `GET /api/listings/category/{categoryId}` - Get listings by category
 - `GET /api/listings/status/{status}` - Get listings by status (ACTIVE, SOLD, PENDING, DRAFT)
 - `GET /api/listings/condition/{condition}` - Get listings by condition (NEW, LIKE_NEW, GOOD, FAIR, POOR)
-- `GET /api/listings/price-range?minPrice={min}&maxPrice={max}` - Get listings by price range
+- `GET /api/listings/price-range?minPrice={min}&maxPrice={max}` - Filter by price range
 - `GET /api/listings/search?searchTerm={term}` - Search listings by title or description
 - `GET /api/listings/seller/{sellerId}/status/{status}` - Get listings by seller and status
-- `GET /api/listings/category/{categoryId}/status/{status}?page={page}&size={size}` - Get paginated listings by category and status
-- `GET /api/listings/status/{status}/page?page={page}&size={size}` - Get paginated listings by status
-- `GET /api/listings/seller/{sellerId}/page?page={page}&size={size}` - Get paginated listings by seller
+- `GET /api/listings/category/{categoryId}/status/{status}?page={page}&size={size}` - Paginated listings by category and status
+- `GET /api/listings/status/{status}/page?page={page}&size={size}` - Paginated listings by status
+- `GET /api/listings/seller/{sellerId}/page?page={page}&size={size}` - Paginated listings by seller
+- `GET /api/listings/search/advanced?searchTerm={term}&categoryId={id}&minPrice={min}&maxPrice={max}&condition={condition}&status={status}&sortBy={sort}&page={page}&size={size}` - Combined keyword search, filters, sort, and pagination
+- `POST /api/listings/chatbot-search` - Natural-language search (body `{ "query": "..." }`)
+- `GET /api/listings/chatbot-search?query={query}` - Natural-language search via query parameter
 - `PUT /api/listings/{id}` - Update listing
 - `PATCH /api/listings/{id}/status?status={status}` - Update listing status
 - `DELETE /api/listings/{id}` - Delete listing
 
+### Follows
+- `POST /api/follows?followerId={id}&sellerId={id}` - Follow a seller
+- `DELETE /api/follows?followerId={id}&sellerId={id}` - Unfollow a seller
+- `GET /api/follows/check?followerId={id}&sellerId={id}` - Check following status
+- `GET /api/follows/following/{followerId}` - Get sellers followed by a user
+- `GET /api/follows/followers/{sellerId}` - Get followers for a seller
+- `GET /api/follows/followers/{sellerId}/count` - Get follower count for a seller
+- `GET /api/follows/following/{followerId}/count` - Get following count for a user
+
 ### Wishlist
-- `POST /api/wishlist/{userId}/{listingId}` - Add item to wishlist
-- `GET /api/wishlist/user/{userId}` - Get user's wishlist
-- `GET /api/wishlist/listing/{listingId}` - Get wishlist entries for a listing
-- `DELETE /api/wishlist/{userId}/{listingId}` - Remove item from wishlist
-- `GET /api/wishlist/{userId}/{listingId}/exists` - Check if item is in wishlist
-- `DELETE /api/wishlist/user/{userId}/clear` - Clear user's wishlist
+- `POST /api/wishlist` - Add a listing to a user's wishlist (JSON body with `userId` and `listingId`)
+- `GET /api/wishlist/user/{userId}` - Get the full wishlist for a user
+- `GET /api/wishlist/{userId}/{listingId}` - Check if a listing is wishlisted by a user
+- `GET /api/wishlist/user/{userId}/count` - Get wishlist count for a user
+- `GET /api/wishlist/listing/{listingId}/count` - Get wishlist count for a listing
+- `GET /api/wishlist/listing/{listingId}` - Get all users who wishlisted a listing
+- `DELETE /api/wishlist/{userId}/{listingId}` - Remove a listing from a wishlist
+- `DELETE /api/wishlist/user/{userId}` - Clear a user's entire wishlist
 
 ### Messages
-- `POST /api/messages` - Send a message
-- `GET /api/messages/{id}` - Get message by ID
-- `GET /api/messages/listing/{listingId}` - Get messages for a listing
-- `GET /api/messages/conversation/{userId1}/{userId2}` - Get conversation between two users
-- `GET /api/messages/conversation/listing/{listingId}/{userId1}/{userId2}` - Get conversation for a specific listing
-- `GET /api/messages/sent/{userId}` - Get messages sent by user
-- `GET /api/messages/received/{userId}` - Get messages received by user
-- `DELETE /api/messages/{id}` - Delete message
+- `POST /api/messages` - Send a message (requires JWT)
+- `GET /api/messages/{id}` - Get message by ID (requires JWT)
+- `GET /api/messages/listing/{listingId}` - Get messages tied to a listing (requires JWT)
+- `GET /api/messages/conversation/{userId1}/{userId2}` - Get conversation between two users (requires JWT)
+- `GET /api/messages/conversation/listing/{listingId}/{userId1}/{userId2}` - Get conversation for a specific listing (requires JWT)
+- `GET /api/messages/conversation/listing/{listingId}/{userId1}/{userId2}/page?page={page}&size={size}` - Paginated listing conversation (requires JWT)
+- `GET /api/messages/sent/{userId}?page={page}&size={size}` - Get messages sent by a user (user can only access their own data)
+- `GET /api/messages/received/{userId}?page={page}&size={size}` - Get messages received by a user
+- `GET /api/messages/user/{userId}?page={page}&size={size}` - Get all messages (sent + received) for a user
+- `GET /api/messages/partners/{userId}` - Get conversation partners for a user
+- `GET /api/messages/unread/count/{userId}` - Get unread message count
+- `GET /api/messages/unread/{userId}` - Get unread messages
+- `PATCH /api/messages/{messageId}/mark-read` - Mark a message as read
+- `PATCH /api/messages/mark-all-read/{userId}` - Mark all of a user's messages as read
+- `DELETE /api/messages/{id}` - Delete a message (sender only)
 
 ### Transactions
 - `POST /api/transactions` - Create a new transaction
@@ -77,9 +105,9 @@ http://localhost:8080/api
 - `GET /api/transactions/{id}` - Get transaction by ID
 - `GET /api/transactions/listing/{listingId}` - Get transaction by listing ID
 - `GET /api/transactions/buyer/{buyerId}` - Get transactions by buyer
-- `GET /api/transactions/status/{status}` - Get transactions by status (PENDING, COMPLETED, CANCELLED, REFUNDED)
 - `GET /api/transactions/seller/{sellerId}` - Get transactions by seller
 - `GET /api/transactions/seller/{sellerId}/status/{status}` - Get transactions by seller and status
+- `GET /api/transactions/status/{status}` - Get transactions by status (PENDING, COMPLETED, CANCELLED, REFUNDED)
 - `PUT /api/transactions/{id}` - Update transaction
 - `PATCH /api/transactions/{id}/status?status={status}` - Update transaction status
 - `PATCH /api/transactions/{transactionId}/mark-sold?sellerId={id}` - Seller accepts request (marks as COMPLETED)
@@ -102,7 +130,7 @@ http://localhost:8080/api
 
 ### Reports
 - `POST /api/reports` - Create a new report
-- `GET /api/reports` - Get all reports
+- `GET /api/reports` - Get all reports *(ADMIN only)*
 - `GET /api/reports/{id}` - Get report by ID
 - `GET /api/reports/reporter/{reporterId}` - Get reports by reporter
 - `GET /api/reports/moderator/{moderatorId}` - Get reports by moderator
@@ -111,9 +139,17 @@ http://localhost:8080/api
 - `GET /api/reports/target/{targetId}` - Get reports by target ID
 - `GET /api/reports/target-type/{targetType}/status/{status}` - Get reports by target type and status
 - `PUT /api/reports/{id}` - Update report
-- `PATCH /api/reports/{id}/assign-moderator?moderatorId={moderatorId}` - Assign moderator to report
-- `PATCH /api/reports/{id}/status?status={status}` - Update report status
-- `DELETE /api/reports/{id}` - Delete report
+- `PATCH /api/reports/{id}/assign-moderator?moderatorId={moderatorId}` - Assign moderator to report *(ADMIN only)*
+- `PATCH /api/reports/{id}/status?status={status}` - Update report status *(ADMIN only)*
+- `DELETE /api/reports/{id}` - Delete report *(ADMIN only)*
+
+### Images
+- `POST /api/images/presigned-url` - Generate a presigned URL for uploading to S3 (requires JWT)
+- `POST /api/images/presigned-url/batch` - Generate up to 10 presigned URLs at once (requires JWT)
+- `DELETE /api/images?imageUrl={url}` - Delete an image from S3 by its public URL (requires JWT)
+
+### Health
+- `GET /api/health` - API + database health check endpoint
 
 ## Data Models
 

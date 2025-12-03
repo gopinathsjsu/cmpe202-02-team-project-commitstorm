@@ -31,12 +31,29 @@ Note: Integration tests (if added) may use Testcontainers and require Docker run
 
 ---
 
+## Delivery guardrails (Definition of Ready / Definition of Done)
+
+**Definition of Ready** (a story cannot enter sprint planning unless):
+- Acceptance criteria describe observable behavior plus data/edge cases.
+- API/DB contracts are documented (link to `API_DOCUMENTATION.md` or migration ID), and required credentials or feature flags are noted.
+- Test strategy is captured: which suites (unit, integration, k6, Postman) must be touched and any new fixtures/data needed.
+- Dependencies and owners are identified (e.g., S3 bucket ACL change, security review).
+
+**Definition of Done** (a story is shippable only when):
+- `mvn test` (unit + integration) passes locally and in CI; new tests are added where behavior changed.
+- Coverage/regression impact considered—Jacoco delta reviewed for critical modules.
+- Documentation updated: README/runbook/API docs plus changelog if external behavior changed.
+- Non-functional checks pass: k6 smoke (and load if required) meet thresholds, monitoring/alerts adjusted if metrics move.
+- Changes merged to the release branch with reviewer approval, deployment notes + rollback steps captured in the sprint log.
+
+---
+
 ## Current test status (summary)
 
-- Unit tests present and passing (latest full run): **162 tests passed**.
-- There are currently **~17 unit test files** under `src/test/java/com/campus/marketplace` covering many controllers and services.
-- No integration test source files are present in the current repository tree. There are historical integration test artifacts under `target/surefire-reports/` from earlier runs, but the source integration tests are not in source control at the moment.
-- JaCoCo (coverage) is configured in `pom.xml` and a report has been generated.
+- Unit + integration tests present and passing (latest run): **286 automated tests**.
+- Test sources now live under `src/test/java/com/campus/marketplace/{controller,service,exception,config,integration}`.
+- Integration tests leverage Testcontainers (real MySQL) for end-to-end API flows.
+- JaCoCo (coverage) is configured in `pom.xml`; see `target/site/jacoco/index.html` for full report.
 
 Coverage highlights (from `backend/target/site/jacoco/index.html`):
 
@@ -62,57 +79,40 @@ The repository currently contains and we ran the following test classes (non-exh
 - `GlobalExceptionHandlerTest`
 - `UserDetailsServiceImplTest`
 - `ReportServiceTest`, `ReportControllerTest`
+- `MessageServiceTest`, `MessageControllerTest`
+- `ImageControllerTest`, `S3ServiceTest`
+
+## Integration Tests
+
+- Suite lives under `src/test/java/com/campus/marketplace/integration` and covers Auth ➜ Listing ➜ Transaction happy paths against a disposable MySQL Testcontainer.
+- Requires Docker running locally. The container is launched automatically when `mvn test` executes.
+- To run everything (unit + integration):
+
+```bash
+cd backend
+mvn test
+```
+
+- To skip the Testcontainer suite (useful on CI agents without Docker) pass `-DskipITs=true` which activates the `skip-integration-tests` Maven profile:
+
+```bash
+mvn test -DskipITs=true
+```
 
 These unit tests use JUnit5 + Mockito and MockMvc (for controller layer tests).
 
 ---
 
-## Missing / High‑Priority tests (recommended order)
+## Remaining test gaps / next steps
 
-These are non-trivial classes that currently lack unit tests and should be prioritized.
+Now that controller/service units plus the core integration flows are covered, focus future effort on:
 
-High priority (write these first):
+- **Media uploads (S3 + ImageController)**: add integration tests backed by LocalStack or WireMock to exercise presigned URL generation and image validation end to end.
+- **Message & notification workflows**: expand beyond existing unit tests to cover real conversations between buyers/sellers (controller ➜ service ➜ repository) with WebSocket/SSE stubs if applicable.
+- **Chatbot/OpenAI contract tests**: introduce a WireMock test double to validate prompt formatting and fallback behavior without calling the live API.
+- **Security regression tests**: add Spring Security slice tests that assert role-based access for admin-only controllers plus JWT filter edge cases (expired tokens, malformed Authorization header).
+- **DataInitializer guardrails**: add profile-specific tests ensuring seeding logic respects duplicates and encoded passwords when the component is enabled.
 
-- `AuthService` — login, register, password hashing, token issuance, error paths. Mock `UserRepository`, `JwtUtil`, `PasswordEncoder`.
-- `AuthController` — happy/error HTTP flows (validate status codes/payloads). Mock `AuthService`.
-- `TransactionService` — transaction lifecycle (create, complete, cancel), validations and side-effects (messages/listing status). Mock repositories and any payment wrapper.
-- `TransactionController` — request/response flows; validate mapping of service exceptions to HTTP codes.
-- `MessageService` — composing/saving messages and system-message automation; mock `MessageRepository` and related entities.
-- `MessageController` — endpoints that orchestrate messaging operations.
-- `S3Service` — presigned URL generation and upload handling; mock AWS client wrapper.
-- `ImageController` — upload and presigned endpoints that call `S3Service`/`ImageUtil`.
-- `JwtAuthenticationFilter` — filter behavior for valid/invalid/expired tokens; mock `JwtUtil` and `UserDetailsService`.
-- `SecurityConfig` — basic assertions about security beans and endpoint protection (small context test).
-- `ChatbotSearchService` — external OpenAI/chatbot call mapping and fallback behavior.
-
-Medium priority:
-
-- `DataInitializer` (test its behavior in a safe way — ensure it uses `existsBy...` guards).
-- `ImageUtil` (image helper functions validation).
-
-Lower priority (skip for now or test via integration tests):
-
-- DTOs (plain POJOs) and simple repository interfaces — these are typically exercised by service and integration tests.
-
----
-
-## Integration Tests
-
-- There are currently **no integration test source files** in `src/test/java/...` in the checked-out repository. However, previous runs produced integration test results in `target/surefire-reports/` (these are historical artifacts).
-- If you want integration tests, add test classes under `src/test/java/com/campus/marketplace/integration/` and use Testcontainers (MySQL) and `@SpringBootTest` + `@AutoConfigureMockMvc`.
-
-Example integration test base (pattern):
-
-```java
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureMockMvc
-@Testcontainers
-public abstract class IntegrationTestBase {
-    // Testcontainers setup for MySQL
-}
-```
-
-Note: Integration tests will pull Docker images and take longer; run them separately when needed.
 
 ---
 
@@ -126,14 +126,46 @@ mvn test jacoco:report
 # Then open: backend/target/site/jacoco/index.html
 ```
 
-I ran the report and summarized the main coverage metrics above in the "Current test status" section.
-
 ---
 
 ## DataInitializer note
 
 - `DataInitializer` is a `@Component` that implements `CommandLineRunner` and will run at application startup. It seeds an admin and sample users + categories by calling service methods.
 - Production caution: it will run against whichever `spring.datasource` the app uses (the default in `application.yml` points to an AWS RDS endpoint). Consider toggling it off in production with `@Profile` or `@ConditionalOnProperty` if needed.
+
+---
+
+## Load & Smoke testing (k6 + Postman)
+
+- **Postman**: `backend/src/main/resources/postman/Smoke_Test_Collection.json` exercises core endpoints. Import into Postman or run with Newman.
+- **k6 smoke run**: lightweight health + login + listings check.
+
+```bash
+cd backend
+k6 run scripts/load-tests/k6-smoke-test.js \
+	--env BASE_URL=https://api.example.com \
+	--env TEST_EMAIL=admin@demo.campusmarket.com \
+	--env TEST_PASSWORD=demo123
+```
+
+- **k6 load run**: constant read load + optional write trickle. Writes stay disabled unless `ENABLE_WRITES=true` (to avoid polluting prod data).
+
+```bash
+k6 run scripts/load-tests/k6-load-test.js \
+	--env BASE_URL=https://api.example.com \
+	--env TEST_EMAIL=admin@demo.campusmarket.com \
+	--env TEST_PASSWORD=demo123 \
+	--env READ_RATE=25 \
+	--env ENABLE_WRITES=true
+```
+
+Env knobs:
+
+- `BASE_URL`, `TEST_EMAIL`, `TEST_PASSWORD`: identity used for login.
+- `ENABLE_WRITES=true`: allows the script to create temporary listings (seller = logged-in user, requires existing categories).
+- `VUS`, `DURATION`, `READ_RATE`, `WRITE_PEAK_RATE`, etc., let you scale scenarios without editing the scripts.
+
+Both scripts exit non-zero if >5% of requests fail or the 95th percentile latency breaches thresholds, making them suitable for CI smoke/load gates.
 
 ---
 

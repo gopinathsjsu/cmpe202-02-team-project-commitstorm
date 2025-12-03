@@ -6,9 +6,12 @@ import com.campus.marketplace.service.CategoryService;
 import com.campus.marketplace.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
+@Profile("!test")
 public class DataInitializer implements CommandLineRunner {
 
     @Autowired
@@ -16,6 +19,11 @@ public class DataInitializer implements CommandLineRunner {
 
     @Autowired
     private CategoryService categoryService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    private static final String DEFAULT_PASSWORD = "demo123";
 
     @Override
     public void run(String... args) throws Exception {
@@ -29,6 +37,7 @@ public class DataInitializer implements CommandLineRunner {
             User admin = new User();
             admin.setName("Admin User");
             admin.setEmail("admin@campusmarket.com");
+            admin.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
             admin.setRole(User.UserRole.ADMIN);
             admin.setStatus(User.UserStatus.ACTIVE);
             userService.createUser(admin);
@@ -39,6 +48,7 @@ public class DataInitializer implements CommandLineRunner {
             User user1 = new User();
             user1.setName("John Doe");
             user1.setEmail("john.doe@university.edu");
+            user1.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
             user1.setRole(User.UserRole.USER);
             user1.setStatus(User.UserStatus.ACTIVE);
             userService.createUser(user1);
@@ -48,6 +58,7 @@ public class DataInitializer implements CommandLineRunner {
             User user2 = new User();
             user2.setName("Jane Smith");
             user2.setEmail("jane.smith@university.edu");
+            user2.setPassword(passwordEncoder.encode(DEFAULT_PASSWORD));
             user2.setRole(User.UserRole.USER);
             user2.setStatus(User.UserStatus.ACTIVE);
             userService.createUser(user2);
