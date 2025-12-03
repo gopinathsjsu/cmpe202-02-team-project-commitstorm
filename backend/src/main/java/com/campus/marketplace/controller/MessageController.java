@@ -129,6 +129,27 @@ public class MessageController {
         }
     }
     
+    // Get conversation for a specific listing between two users with pagination
+    @GetMapping("/conversation/listing/{listingId}/{userId1}/{userId2}/page")
+    @Operation(summary = "Get conversation for listing (paginated)", description = "Get paginated conversation between two users about a specific listing")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<?> getConversationForListingPaginated(
+            @PathVariable String listingId,
+            @PathVariable String userId1,
+            @PathVariable String userId2,
+            @RequestHeader("Authorization") String authHeader,
+            @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size) {
+        try {
+            String currentUserId = getUserIdFromToken(authHeader);
+            
+            Page<MessageDTO> messages = messageService.getConversationForListing(listingId, userId1, userId2, currentUserId, page, size);
+            return ResponseEntity.ok(messages);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
     // Get messages sent by user
     @GetMapping("/sent/{userId}")
     @Operation(summary = "Get messages sent by user", description = "Get all messages sent by a specific user")
