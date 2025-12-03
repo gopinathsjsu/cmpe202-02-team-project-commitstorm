@@ -17,7 +17,21 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -345,12 +359,15 @@ public class ListingController {
     
     /**
      * Update listing status only.
+     * Admin only.
      * @param id listing id
      * @param status new status
      * @return 200 with updated ListingDTO or 404 if not found
      */
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ListingDTO> updateListingStatus(@PathVariable String id, @RequestParam Listing.ListingStatus status) {
+        ensureAdminAccess();
         try {
             Listing updatedListing = listingService.updateListingStatus(id, status);
             return ResponseEntity.ok(new ListingDTO(updatedListing));
@@ -361,11 +378,14 @@ public class ListingController {
     
     /**
      * Delete listing.
+     * Admin only.
      * @param id listing id
      * @return 204 No Content
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteListing(@PathVariable String id) {
+        ensureAdminAccess();
         listingService.deleteListing(id);
         return ResponseEntity.noContent().build();
     }
@@ -402,5 +422,14 @@ public class ListingController {
         );
         Page<ListingDTO> listingDTOs = listings.map(ListingDTO::new);
         return ResponseEntity.ok(listingDTOs);
+    }
+    
+    private void ensureAdminAccess() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+        if (!isAdmin) {
+            throw new AccessDeniedException("Admin access required");
+        }
     }
 }

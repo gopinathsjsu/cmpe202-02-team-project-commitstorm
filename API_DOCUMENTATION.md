@@ -59,8 +59,8 @@ Swagger UI (deployed): `http://ec2-16-146-79-242.us-west-2.compute.amazonaws.com
 - `POST /api/listings/chatbot-search` - Natural-language search (body `{ "query": "..." }`)
 - `GET /api/listings/chatbot-search?query={query}` - Natural-language search via query parameter
 - `PUT /api/listings/{id}` - Update listing
-- `PATCH /api/listings/{id}/status?status={status}` - Update listing status
-- `DELETE /api/listings/{id}` - Delete listing
+- `PATCH /api/listings/{id}/status?status={status}` - Update listing status *(ADMIN only)*
+- `DELETE /api/listings/{id}` - Delete listing *(ADMIN only)*
 
 ### Follows
 - `POST /api/follows?followerId={id}&sellerId={id}` - Follow a seller
