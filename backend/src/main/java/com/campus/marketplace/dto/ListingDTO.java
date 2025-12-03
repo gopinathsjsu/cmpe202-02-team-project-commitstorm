@@ -14,6 +14,9 @@ import java.time.LocalDateTime;
 public class ListingDTO {
     
     private String id;
+    
+    @NotNull(message = "Seller ID is required")
+    @NotBlank(message = "Seller ID is required")
     private String sellerId;
     private String sellerName;
     
@@ -26,6 +29,8 @@ public class ListingDTO {
     @DecimalMin(value = "0.0", message = "Price must be non-negative")
     private BigDecimal price;
     
+    @NotNull(message = "Category ID is required")
+    @NotBlank(message = "Category ID is required")
     private String categoryId;
     private String categoryName;
     
