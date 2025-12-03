@@ -1,22 +1,16 @@
 package com.campus.marketplace.controller;
 
-import com.campus.marketplace.dto.ChatbotSearchRequest;
-import com.campus.marketplace.dto.ChatbotSearchResponse;
-import com.campus.marketplace.dto.ListingDTO;
-import com.campus.marketplace.entity.Listing;
-import com.campus.marketplace.entity.User;
-import com.campus.marketplace.entity.Category;
-import com.campus.marketplace.service.ChatbotSearchService;
-import com.campus.marketplace.service.ListingService;
-import com.campus.marketplace.service.UserService;
-import com.campus.marketplace.service.CategoryService;
-import jakarta.validation.Valid;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -33,9 +27,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.campus.marketplace.dto.ChatbotSearchRequest;
+import com.campus.marketplace.dto.ChatbotSearchResponse;
+import com.campus.marketplace.dto.ListingDTO;
+import com.campus.marketplace.entity.Category;
+import com.campus.marketplace.entity.Listing;
+import com.campus.marketplace.entity.User;
+import com.campus.marketplace.service.CategoryService;
+import com.campus.marketplace.service.ChatbotSearchService;
+import com.campus.marketplace.service.ListingService;
+import com.campus.marketplace.service.UserService;
+
+import jakarta.validation.Valid;
 
 /**
  * Listing endpoints: CRUD, filters, search, and pagination.
@@ -64,11 +67,26 @@ public class ListingController {
      */
     @PostMapping
     public ResponseEntity<ListingDTO> createListing(@Valid @RequestBody ListingDTO listingDTO) {
+        // Validate sellerId is provided
+        if (listingDTO.getSellerId() == null || listingDTO.getSellerId().trim().isEmpty()) {
+            throw new RuntimeException("Seller ID is required");
+        }
+        
+        // Validate categoryId is provided
+        if (listingDTO.getCategoryId() == null || listingDTO.getCategoryId().trim().isEmpty()) {
+            throw new RuntimeException("Category ID is required");
+        }
+        
         User seller = userService.getUserById(listingDTO.getSellerId())
-                .orElseThrow(() -> new RuntimeException("Seller not found"));
+                .orElseThrow(() -> new RuntimeException("Seller not found with ID: " + listingDTO.getSellerId()));
+        
+        // Ensure seller has an ID (should always be true if fetched from DB, but double-check)
+        if (seller.getId() == null || seller.getId().trim().isEmpty()) {
+            throw new RuntimeException("Seller entity is invalid: missing ID");
+        }
         
         Category category = categoryService.getCategoryById(listingDTO.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+                .orElseThrow(() -> new RuntimeException("Category not found with ID: " + listingDTO.getCategoryId()));
         
         Listing listing = new Listing();
         listing.setSeller(seller);

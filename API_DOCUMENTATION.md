@@ -259,6 +259,7 @@ Swagger UI (deployed): `http://ec2-16-146-79-242.us-west-2.compute.amazonaws.com
 ## Error Handling
 The API returns appropriate HTTP status codes and error messages:
 - `400 Bad Request` - Invalid input data or validation errors
+- `403 Forbidden` - Access denied (for ADMIN-only endpoints or insufficient permissions)
 - `404 Not Found` - Resource not found
 - `500 Internal Server Error` - Server error
 
