@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -100,6 +102,24 @@ public class GlobalExceptionHandler {
             getPath(request),
             "UNAUTHORIZED",
             "Invalid credentials",
+            null
+        );
+        response.setRequestId(requestId);
+        
+        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+    }
+    
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(
+            AuthenticationException ex, WebRequest request) {
+        String requestId = UUID.randomUUID().toString();
+        logger.warn("Authentication exception [{}]: {}", requestId, ex.getMessage());
+        
+        ErrorResponse response = new ErrorResponse(
+            LocalDateTime.now(),
+            getPath(request),
+            "UNAUTHORIZED",
+            "Authentication required",
             null
         );
         response.setRequestId(requestId);
