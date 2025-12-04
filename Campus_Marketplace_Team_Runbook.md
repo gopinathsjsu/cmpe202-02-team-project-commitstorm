@@ -123,8 +123,9 @@ mvn spring-boot:run
 ---
 
 ## 5) Verify it works
-- Health check: `http://localhost:8080/health` → `{ "status": "ok" }`
-- Swagger UI: `http://localhost:8080/swagger-ui.html`
+## 5) Verify it works
+- Health check: `http://localhost:8080/health` (local) / `http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/health` (production) → `{ "status": "ok" }`
+- Swagger UI: `http://localhost:8080/swagger-ui.html` (local) / `http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/swagger-ui.html` (production)
 
 On first startup you should see Flyway logs like:
 ```
@@ -162,7 +163,10 @@ Then try endpoints in Swagger (`/categories`, `/listings`, etc.).
 
 ## 7) Postman (optional)
 - Import the provided Postman collection (if present in the repo) or create a new one.
-- Set `{{baseUrl}} = http://localhost:8080/api/v1`.
+## 7) Postman (optional)
+- Import the provided Postman collection (if present in the repo) or create a new one.
+- Set `{{baseUrl}} = http://localhost:8080/api/v1` (local) or `http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/api/v1` (production).
+- Postamn documentation published at 'https://documenter.getpostman.com/view/49559530/2sB3WqvLMV'
 - Postamn documentation published at 'https://documenter.getpostman.com/view/49559530/2sB3WqvLMV'
 
 ---

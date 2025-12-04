@@ -73,9 +73,9 @@ docker-compose up
 
 Once the application is running, you can access:
 
-- **Swagger UI**: http://localhost:8080/swagger-ui.html
-- **API Docs**: http://localhost:8080/api-docs
-- **Health Check**: http://localhost:8080/health
+- **Swagger UI**: http://localhost:8080/swagger-ui.html (local) / http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/swagger-ui.html (production)
+- **API Docs**: http://localhost:8080/api-docs (local) / http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/api-docs (production)
+- **Health Check**: http://localhost:8080/health (local) / http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/health (production)
 
 ## API Endpoints
 
@@ -375,7 +375,7 @@ Tests are designed to run in CI/CD pipelines:
 ### Manual API Testing
 
 For manual API testing, you can also use:
-- **Swagger UI**: http://localhost:8080/swagger-ui.html
+- **Swagger UI**: http://localhost:8080/swagger-ui.html (local) / http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/swagger-ui.html (production)
 - **Postman Collection**: `Campus Marketplace API.postman_collection.json`
 - **cURL commands**: See API_DOCUMENTATION.md
 
@@ -449,7 +449,9 @@ This project is part of CMPE 202 coursework.
 
 3. **Verify**:
    ```bash
-   curl http://localhost:8080/api/health
+   curl http://localhost:8080/api/health  # Local development
+   # OR for production:
+   curl http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/api/health
    ```
 
 ### Documentation
@@ -522,6 +524,6 @@ For questions or issues, please contact the development team or create an issue 
 
 ## 📚 Additional Resources
 
-- **Swagger UI**: `http://localhost:8080/swagger-ui.html`
+- **Swagger UI**: http://localhost:8080/swagger-ui.html (local) / http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/swagger-ui.html (production)
 - **Postman Collection**: Import `Campus Marketplace API.postman_collection.json`
 - **Authentication Guide**: [AUTHENTICATION.md](backend/AUTHENTICATION.md)

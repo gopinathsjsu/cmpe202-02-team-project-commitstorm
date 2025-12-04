@@ -10,8 +10,8 @@ export const options = {
   },
 };
 
-const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
-const TEST_EMAIL = __ENV.TEST_EMAIL || 'admin@demo.campusmarket.com';
+const BASE_URL = __ENV.BASE_URL || 'http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com';
+const TEST_EMAIL = __ENV.TEST_EMAIL || 'admin@campusmarket.com';
 const TEST_PASSWORD = __ENV.TEST_PASSWORD || 'demo123';
 
 export default function () {

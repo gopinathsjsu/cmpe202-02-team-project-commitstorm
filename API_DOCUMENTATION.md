@@ -276,7 +276,9 @@ Error response format:
 ```
 
 ## Swagger Documentation
-API documentation is available at: `http://localhost:8080/swagger-ui.html`
+API documentation is available at:
+- **Local Development**: `http://localhost:8080/swagger-ui.html`
+- **Production**: `http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/swagger-ui.html`
 
 ## Database
 The application uses MySQL database with Flyway migrations for schema management. The database schema is defined in `V1__init_mysql.sql`.

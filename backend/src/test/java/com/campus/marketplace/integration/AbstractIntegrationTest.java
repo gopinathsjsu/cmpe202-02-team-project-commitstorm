@@ -22,9 +22,6 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.testcontainers.containers.MySQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.UUID;
 
@@ -32,7 +29,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Tag("integration")
-@Testcontainers(disabledWithoutDocker = true)
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
@@ -41,13 +37,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ComponentScan(basePackages = "com.campus.marketplace")
 public abstract class AbstractIntegrationTest {
-
-    @SuppressWarnings("resource")
-    @Container
-    protected static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0.36")
-            .withDatabaseName("campusMarket")
-            .withUsername("it_user")
-            .withPassword("it_pass");
 
     @Autowired
     protected MockMvc mockMvc;
@@ -68,10 +57,11 @@ public abstract class AbstractIntegrationTest {
 
     @DynamicPropertySource
     static void overrideDataSourceProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", MYSQL::getJdbcUrl);
-        registry.add("spring.datasource.username", MYSQL::getUsername);
-        registry.add("spring.datasource.password", MYSQL::getPassword);
-        registry.add("spring.datasource.driver-class-name", MYSQL::getDriverClassName);
+        // Use RDS database for integration tests
+        registry.add("spring.datasource.url", () -> "jdbc:mysql://commitstorm.c3k8w4gacaeh.us-west-2.rds.amazonaws.com:3306/campusMarket?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC");
+        registry.add("spring.datasource.username", () -> "admin");
+        registry.add("spring.datasource.password", () -> "commitstorm");
+        registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
         registry.add("spring.jpa.show-sql", () -> "false");
         registry.add("spring.flyway.enabled", () -> true);

@@ -1,5 +1,6 @@
 package com.campus.marketplace.controller;
 
+import com.campus.marketplace.dto.ListingDTO;
 import com.campus.marketplace.entity.Category;
 import com.campus.marketplace.entity.Listing;
 import com.campus.marketplace.entity.User;
@@ -190,13 +191,23 @@ public class ListingControllerTest {
     
     @Test
     void testUpdateListing() throws Exception {
-        testListing.setTitle("Updated Title");
+        // Create a ListingDTO for the request body
+        ListingDTO updateDTO = new ListingDTO();
+        updateDTO.setTitle("Updated Title");
+        updateDTO.setDescription("Updated Description");
+        updateDTO.setPrice(new BigDecimal("150.00"));
+        updateDTO.setSellerId("seller-123");
+        updateDTO.setCategoryId("category-123");
+        updateDTO.setCondition(Listing.ItemCondition.GOOD);
+        updateDTO.setStatus(Listing.ListingStatus.ACTIVE);
+        
+        // Mock the existing listing
         when(listingService.getListingById("listing-123")).thenReturn(Optional.of(testListing));
         when(listingService.updateListing(any(Listing.class))).thenReturn(testListing);
         
         mockMvc.perform(put("/api/listings/listing-123")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(testListing)))
+            .content(objectMapper.writeValueAsString(updateDTO)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.title").value("Updated Title"));
     }
