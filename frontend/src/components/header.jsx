@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 
-const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout, onMyProfileClick, onMyListingsClick, onMyMessagesClick }) => {
+const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout, onMyProfileClick, onMyListingsClick, onMyMessagesClick, onReportsClick }) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const navigate = useNavigate();
@@ -71,7 +71,7 @@ const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout, onMyProfi
                 <a href="#" className="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
                   Browse
                 </a>
-                <a href="#" className="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
+                <a href="/create-listing" className="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
                   Sell
                 </a>
                 <a href="#" className="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
@@ -124,6 +124,20 @@ const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout, onMyProfi
                         View My Messages
                       </button>
                       <div className="border-t border-gray-700 my-1"></div>
+                      {user.role =='ADMIN' ? (
+                        <>
+                          <button
+                          onClick={() => {
+                            setShowProfileDropdown(false);
+                            if (onReportsClick) onReportsClick();
+                          }}
+                          className="block w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                          >
+                          View Reports
+                          </button>
+                          <div className="border-t border-gray-700 my-1"></div>
+                        </>
+                      ): <></>}
                       <button
                         onClick={() => {
                           setShowProfileDropdown(false);

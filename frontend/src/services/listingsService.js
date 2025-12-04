@@ -40,6 +40,23 @@ export const getListingById = async (listingId) => {
 };
 
 /**
+ * Post a new listing to the API
+ * @param {Object} listingData  - Data for the new listing
+ * @returns {Promise<Boolean>} Success status
+ */
+export const postListings = async (data) => {
+  try {
+    const response = await apiClient.post('/api/listings', data);
+    return response.data;
+  } catch (error) {
+    throw {
+      message: error.message || 'Failed to create listing',
+      status: error.status || 500,
+    };
+  }
+};
+
+/**
  * Get listings by seller ID
  * @param {string} sellerId - Seller user ID
  * @returns {Promise<Array>} Array of listing objects

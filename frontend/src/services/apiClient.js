@@ -8,7 +8,7 @@ const getBaseURL = () => {
     return import.meta.env.VITE_API_BASE_URL;
   }
   // Default to localhost:8080 for development and production fallback
-  return 'http://localhost:8080';
+  return 'http://ec2-16-146-79-242.us-west-2.compute.amazonaws.com';
 };
 
 const baseURL = getBaseURL();

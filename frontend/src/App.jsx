@@ -4,9 +4,10 @@ import './css/App.css'
 import Header from './components/header'
 import Home from './components/home'
 import { Marketplace } from './components/marketplace';
-import { MyProfileModal, MyListingsModal, MyMessagesModal } from './components/ProfileModals';
+import { MyProfileModal, MyListingsModal, MyMessagesModal, ManageReportsModal } from './components/ProfileModals';
 import Login from './components/auth/Login';
 import Signup from './components/auth/Signup';
+import ListingForm from './components/listingForm';
 import Chat from './components/Chat';
 import ReportModal from './components/ReportModal';
 import { setAuthToken, clearAuthToken } from './services/apiClient';
@@ -96,6 +97,7 @@ function AppContent() {
         onMyProfileClick={() => setShowProfileModal('profile')}
         onMyListingsClick={() => setShowProfileModal('listings')}
         onMyMessagesClick={() => setShowProfileModal('messages')}
+        onReportsClick={() => setShowProfileModal('reports')}
       />
       
       {/* Auth Modal Overlay */}
@@ -119,8 +121,9 @@ function AppContent() {
       )}
       
       <Routes>
-        <Route path="/" element={<Home />}/>
-        <Route path="/marketplace" element={<Marketplace onMessageVendor={setChatData} onReportPost={setReportData}/>}/>
+        <Route index element={<Home />}/>
+        <Route path="marketplace" element={<Marketplace/>}/>
+        <Route path="create-listing" element={<ListingForm/>}/>
       </Routes>
 
       {/* Profile Modals */}
@@ -142,6 +145,12 @@ function AppContent() {
           user={user}
           onClose={() => setShowProfileModal(null)}
           onMessageVendor={setChatData}
+        />
+      )}
+      {showProfileModal === 'reports' && user && (
+        <ManageReportsModal
+          user={user}
+          onClose={() => setShowProfileModal(null)}
         />
       )}
 

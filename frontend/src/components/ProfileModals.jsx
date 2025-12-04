@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getListings } from '../services/listingsService';
 import { getUserMessages } from '../services/messagesService';
+import { getReportsByStatus } from '../services/reportsService';
 import Post from './post';
 import Chat from './Chat';
 import Loader from './Loader';
+import Report from './report'
 import apiClient from '../services/apiClient';
 
 // Map API listing response to Post component props
@@ -388,6 +390,68 @@ export const MyMessagesModal = ({ user, onClose, onMessageVendor }) => {
         />
       )}
     </>
+  );
+};
+
+export const ManageReportsModal = (user, onClose) => {
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const loadReports = async () => {
+      setLoading(true);
+      try {
+        const reportData = await getReportsByStatus("OPEN");
+        const reportList = Array.isArray(reportData) 
+          ? reportData 
+          : (reportData.content || reportData);
+        setReports(reportList || []);
+      } catch (err) {
+        console.error('Error loading reports:', err);
+        setError(err.message || 'Failed to load reports');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+  useEffect(() => {
+    if (!user) return;
+
+    loadReports();
+  }, [user]);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+        <div className="flex justify-between items-center p-6 border-b border-gray-700">
+          <h2 className="text-2xl font-bold text-white">Reports</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white text-2xl font-bold"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6">
+          {loading ? (
+            <Loader text="Loading Reports..." />
+          ) : error ? (
+            <div className="text-center py-12 text-red-400">{error}</div>
+          ) : reports.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-400">No Reports available.</p>
+            </div>
+          ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {reports.map((listing) => (
+                <Report key={listing.id} userId={user.id} reporterId={listing.reporterId} postId={listing.targetId} reportId={listing.id}/>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 
