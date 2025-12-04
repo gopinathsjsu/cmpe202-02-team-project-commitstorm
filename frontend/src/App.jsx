@@ -122,7 +122,7 @@ function AppContent() {
       
       <Routes>
         <Route index element={<Home />}/>
-        <Route path="marketplace" element={<Marketplace/>}/>
+        <Route path="marketplace" element={<Marketplace onMessageVendor={setChatData} onReportPost={setReportData}/>}/>
         <Route path="create-listing" element={<ListingForm/>}/>
       </Routes>
 
