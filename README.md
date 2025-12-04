@@ -85,6 +85,10 @@ The application provides REST APIs for all major operations:
 - **Users**: `/api/users` - User management
 - **Categories**: `/api/categories` - Category management
 - **Listings**: `/api/listings` - Product listings
+- **Images**: `/api/images` - Image upload and management
+  - `POST /api/images/presigned-url` - Get presigned URL for upload
+  - `POST /api/images/confirm-upload` - Confirm upload and make public
+  - `GET /api/images/presigned-get-url` - Get presigned URL for viewing
 - **Wishlist**: `/api/wishlist` - User wishlists
 - **Messages**: `/api/messages` - Communication system
 - **Transactions**: `/api/transactions` - Purchase management
@@ -166,6 +170,9 @@ Before running tests, ensure you have:
 ```bash
 cd backend
 mvn test
+
+# For clean output (less verbose):
+mvn test -q
 ```
 
 #### Run Specific Test Class
@@ -409,50 +416,292 @@ This project is part of CMPE 202 coursework.
 
 ## 🚀 Production Deployment
 
-### Architecture
+### AWS Architecture Overview
 
 ```
-┌─────────────┐
-│   Client    │
-│  (React)    │
-└──────┬──────┘
-       │ HTTPS
-       ▼
-┌─────────────┐
-│   Nginx     │
-│ (Port 80)   │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐      ┌─────────────┐
-│   Spring    │◄────►│   MySQL     │
-│    Boot     │      │     RDS     │
-│ (Port 8080) │      │             │
-└─────────────┘      └─────────────┘
-     EC2                  AWS RDS
+┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
+│   Internet      │────▶│  Application Load    │────▶│   Target Group   │
+│   Users         │     │  Balancer (ALB)      │     │   (Port 8080)    │
+└─────────────────┘     └──────────────────────┘     └─────────────────┘
+                                │                                 │
+                                │                                 ▼
+                                │                       ┌─────────────────┐
+                                │                       │   EC2 Instance  │
+                                │                       │   (Docker)      │
+                                ▼                       │                 │
+                      ┌──────────────────────┐         │  ┌────────────┐ │
+                      │   Security Groups    │         │  │ Spring Boot │ │
+                      │                      │         │  │   App       │ │
+                      │ • ALB Security Group │         │  │ (Port 8080) │ │
+                      │   - Inbound: 80,443 │         │  └────────────┘ │
+                      │   - Outbound: All    │         └─────────────────┘
+                      │                      │
+                      │ • EC2 Security Group │                   │
+                      │   - Inbound: 8080   │                   ▼
+                      │     (from ALB only)  │         ┌─────────────────┐
+                      │   - Outbound: All    │         │   AWS RDS       │
+                      └──────────────────────┘         │   MySQL 8.0     │
+                                                      │   Database      │
+                                                      └─────────────────┘
+```
+
+### Infrastructure Components
+
+#### **Application Load Balancer (ALB)**
+- **Type**: Application Load Balancer
+- **Listeners**: HTTP (80) and HTTPS (443)
+- **Target Groups**: 
+  - Protocol: HTTP
+  - Port: 8080
+  - Health Check: `/api/health`
+  - Healthy threshold: 2
+  - Unhealthy threshold: 2
+  - Timeout: 5 seconds
+  - Interval: 30 seconds
+
+#### **Security Groups**
+- **ALB Security Group**:
+  - Inbound: HTTP (80), HTTPS (443) from 0.0.0.0/0
+  - Outbound: All traffic to 0.0.0.0/0
+
+- **EC2 Security Group**:
+  - Inbound: HTTP (8080) from ALB Security Group only
+  - Outbound: All traffic to 0.0.0.0/0
+
+#### **EC2 Instance**
+- **AMI**: Amazon Linux 2 or Ubuntu
+- **Instance Type**: t3.micro (for development) or t3.small+ (for production)
+- **Storage**: 20GB+ EBS
+- **Docker**: Pre-installed and configured
+
+#### **RDS MySQL Database**
+- **Engine**: MySQL 8.0
+- **Instance Class**: db.t3.micro (development) or db.t3.small+ (production)
+- **Storage**: 20GB+ with auto-scaling
+- **Multi-AZ**: Enabled for production
+- **Backup**: Automated daily backups
+
+### Deployment Process
+
+#### Prerequisites
+- AWS Account with appropriate permissions
+- EC2 instance with Docker installed
+- RDS MySQL database created
+- ALB configured with target groups
+- Security groups properly configured
+- Domain name (optional, for HTTPS)
+
+#### Environment Variables
+Create a `.env` file in the `backend/` directory:
+
+```bash
+# Database Configuration
+SPRING_DATASOURCE_URL=jdbc:mysql://your-rds-endpoint.rds.amazonaws.com:3306/campusMarket?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
+SPRING_DATASOURCE_USERNAME=your-db-username
+SPRING_DATASOURCE_PASSWORD=your-db-password
+
+# AWS S3 Configuration (for image uploads)
+AWS_ACCESS_KEY_ID=your-aws-access-key
+AWS_SECRET_ACCESS_KEY=your-aws-secret-key
+AWS_S3_BUCKET_NAME=your-s3-bucket-name
+AWS_REGION=us-west-2
+
+# OpenAI Configuration (for chatbot)
+OPENAI_API_KEY=your-openai-api-key
+
+# Server Configuration
+SERVER_PORT=8080
 ```
 
 ### Quick Deploy
 
-1. **Prerequisites**:
-   - EC2 instance with Docker
-   - RDS MySQL database
-   - Security groups configured
-
-2. **Deploy**:
+1. **Clone and Setup**:
    ```bash
-   cd backend
+   git clone <repository-url>
+   cd cmpe202-02-team-project-commitstorm/backend
    cp .env.example .env
-   # Edit .env with your RDS credentials
+   # Edit .env with your actual credentials
+   ```
+
+2. **Deploy to EC2**:
+   ```bash
+   # Copy files to EC2 instance
+   scp -i your-key.pem -r . ubuntu@your-ec2-instance:/home/ubuntu/app/
+
+   # SSH into EC2 and deploy
+   ssh -i your-key.pem ubuntu@your-ec2-instance
+   cd /home/ubuntu/app
+   chmod +x scripts/deploy.sh
    ./scripts/deploy.sh
    ```
 
-3. **Verify**:
+3. **Verify Deployment**:
    ```bash
-   curl http://localhost:8080/api/health  # Local development
-   # OR for production:
-   curl http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/api/health
+   # Check container status
+   docker ps
+
+   # Check application health
+   curl http://localhost:8080/api/health
+
+   # Check ALB health
+   curl http://your-alb-url.amazonaws.com/api/health
    ```
+
+### Deployment Scripts
+
+#### Docker-based Deployment Script
+Create `backend/scripts/deploy.sh`:
+
+```bash
+#!/bin/bash
+set -e
+
+echo "🚀 Starting Campus Marketplace Deployment..."
+
+# Load environment variables
+if [ -f .env ]; then
+    export $(cat .env | xargs)
+fi
+
+# Stop existing container
+echo "🛑 Stopping existing containers..."
+docker stop campus_api || true
+docker rm campus_api || true
+
+# Pull latest image (if using registry)
+# docker pull your-registry/campus-api:latest
+
+# Build application
+echo "🔨 Building application..."
+./mvnw clean package -DskipTests
+
+# Build Docker image
+echo "🐳 Building Docker image..."
+docker build -t campus-api:latest .
+
+# Run new container
+echo "🚀 Starting new container..."
+docker run -d \
+  --name campus_api \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  -e SPRING_DATASOURCE_URL="$SPRING_DATASOURCE_URL" \
+  -e SPRING_DATASOURCE_USERNAME="$SPRING_DATASOURCE_USERNAME" \
+  -e SPRING_DATASOURCE_PASSWORD="$SPRING_DATASOURCE_PASSWORD" \
+  -e AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
+  -e AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
+  -e AWS_S3_BUCKET_NAME="$AWS_S3_BUCKET_NAME" \
+  -e AWS_REGION="$AWS_REGION" \
+  -e OPENAI_API_KEY="$OPENAI_API_KEY" \
+  campus-api:latest
+
+# Wait for health check
+echo "⏳ Waiting for application to start..."
+sleep 30
+
+# Health check
+if curl -f http://localhost:8080/api/health > /dev/null; then
+    echo "✅ Deployment successful!"
+    echo "📊 Application is running at: http://localhost:8080"
+else
+    echo "❌ Health check failed!"
+    docker logs campus_api
+    exit 1
+fi
+```
+
+#### AWS Cloud Infrastructure (Manual Console Deployment)
+The application is deployed on AWS using manually configured resources through the AWS Management Console:
+
+**Infrastructure Components:**
+- **Application Load Balancer (ALB)**: `alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com`
+- **EC2 Instance**: Amazon Linux 2 with Docker, running Spring Boot application
+- **RDS MySQL Database**: MySQL 8.0 instance for data persistence
+- **S3 Bucket**: For image storage with presigned URLs
+- **Security Groups**: Properly configured for secure communication
+- **VPC**: Isolated network with public/private subnets
+
+**Key Configurations:**
+- ALB forwards HTTP traffic to EC2 instance on port 8080
+- Health checks configured for `/api/health` endpoint
+- Database security group restricts access to EC2 instances only
+- Application runs in Docker container with environment variables
+
+### Monitoring & Observability
+
+#### Health Checks
+- **Application Health**: `/api/health` endpoint
+- **Database Connectivity**: Automatic in health check
+- **ALB Target Health**: Configured in target group
+
+#### Logs
+```bash
+# Application logs
+docker logs campus_api
+
+# ALB Access Logs (CloudWatch)
+aws logs tail /aws/elasticloadbalancing/campus-marketplace-alb --follow
+
+# System logs
+journalctl -u docker -f
+```
+
+#### Metrics to Monitor
+- **ALB Metrics**: Request count, response time, error rates
+- **EC2 Metrics**: CPU utilization, memory usage, network I/O
+- **RDS Metrics**: Database connections, query latency, storage usage
+- **Application Metrics**: Custom business metrics via Spring Boot Actuator
+
+### Troubleshooting
+
+#### Common Issues
+
+**ALB Health Check Failures**:
+```bash
+# Check application health
+curl http://localhost:8080/api/health
+
+# Check target group health
+aws elbv2 describe-target-health --target-group-arn your-target-group-arn
+```
+
+**Database Connection Issues**:
+```bash
+# Test database connectivity from EC2
+mysql -h your-rds-endpoint -u admin -p campusMarket
+
+# Check security group rules
+aws ec2 describe-security-groups --group-ids your-rds-sg-id
+```
+
+**Container Deployment Issues**:
+```bash
+# Check container logs
+docker logs campus_api
+
+# Check container status
+docker ps -a
+
+# Restart container
+docker restart campus_api
+```
+
+### Scaling Considerations
+
+#### Horizontal Scaling
+- Add more EC2 instances to target group
+- Use Auto Scaling Groups for automatic scaling
+- Implement session affinity if needed
+
+#### Vertical Scaling
+- Upgrade EC2 instance types
+- Increase RDS instance size
+- Optimize application performance
+
+#### Database Scaling
+- Read replicas for read-heavy workloads
+- Connection pooling
+- Query optimization and indexing
 
 ### Documentation
 
@@ -465,9 +714,8 @@ This project is part of CMPE 202 coursework.
 ### Demo Accounts
 
 After running V5 migration:
-- **Admin**: `admin@demo.campusmarket.com` / `demo123`
-- **Seller**: `seller@demo.campusmarket.com` / `demo123`
-- **Buyer**: `buyer@demo.campusmarket.com` / `demo123`
+- **Admin**: `admin@campusmarket.com` / `demo123`
+- **Sample Users**: `john.doe@university.edu` / `demo123`, `jane.smith@university.edu` / `demo123`
 
 ### Testing
 
@@ -478,9 +726,17 @@ After running V5 migration:
 
 #### Load Testing
 ```bash
-# Install k6: https://k6.io/docs/getting-started/installation/
+# Install k6
+brew install k6
+
+# Run smoke test (basic functionality)
 k6 run backend/scripts/load-tests/k6-smoke-test.js
+
+# Run load test (performance under load)
 k6 run --vus 50 --duration 2m backend/scripts/load-tests/k6-load-test.js
+
+# For production testing, set BASE_URL environment variable:
+# BASE_URL=https://your-alb-url.amazonaws.com k6 run backend/scripts/load-tests/k6-smoke-test.js
 ```
 
 #### Demo Script
@@ -488,34 +744,87 @@ k6 run --vus 50 --duration 2m backend/scripts/load-tests/k6-load-test.js
 ./backend/scripts/demo-script.sh
 ```
 
+## ⚠️ CRITICAL: Database Isolation Issue Fixed
+
+**Problem**: Integration tests were running against the PRODUCTION database and deleting all data with cleanup scripts.
+
+**Root Cause**: 
+- Tests configured to use production RDS instead of isolated test database
+- `@Sql(cleanup.sql)` runs before/after each test, truncating ALL tables
+- No Testcontainers or database isolation implemented
+
+**Solution Applied**:
+- ✅ **Fixed**: Integration tests now use Testcontainers with isolated MySQL instances
+- ✅ **Created**: `reset-demo.sh` script to restore demo data via API
+- ✅ **Added**: Comprehensive demo data script for presentation
+
+**To restore demo data after test runs**:
+```bash
+cd backend
+./scripts/reset-demo.sh
+```
+
 ## 📊 Monitoring
 
 ### Health Check
 ```bash
+# Quick health check
 curl http://your-domain/api/health
+
+# Comprehensive health check script
+cd backend/scripts
+./health-check.sh local    # For local development
+./health-check.sh prod     # For production ALB
 ```
 
 ### Logs
 ```bash
 # Application logs
-docker logs campus-marketplace-api --tail 100 -f
+docker logs campus_api
 
-# Nginx logs
-tail -f /var/log/nginx/campus-marketplace-access.log
+# Application logs (follow)
+docker logs campus_api --tail 100 -f
+
+# ALB Access Logs (CloudWatch)
+aws logs tail /aws/elasticloadbalancing/campus-marketplace-alb --follow
+
+# System logs
+journalctl -u docker -f
 ```
 
 ## 🔧 Maintenance
+
+### Application Updates
+```bash
+# Pull latest changes
+git pull
+
+# Deploy updates
+cd backend
+./scripts/deploy.sh
+```
 
 ### Reset Demo Data
 ```bash
 ./backend/scripts/reset-demo.sh
 ```
 
-### Update Application
+### Docker Management
 ```bash
-git pull
-cd backend
-./scripts/deploy.sh
+# View running containers
+docker ps
+
+# View all containers
+docker ps -a
+
+# Restart application
+docker restart campus_api
+
+# View logs
+docker logs campus_api
+
+# Clean up unused images
+docker image prune -f
 ```
 
 ## Support
