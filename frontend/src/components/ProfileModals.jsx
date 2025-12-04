@@ -20,7 +20,7 @@ const mapListingToPostProps = (listing) => {
       } else if (typeof listing.images === 'string') {
         const trimmedImages = listing.images.trim();
         if (trimmedImages.startsWith('[') || trimmedImages.startsWith('"')) {
-          images = JSON.parse(trimmedImages);
+          images = [JSON.parse(trimmedImages)];
         } else {
           images = [trimmedImages];
         }
@@ -393,7 +393,7 @@ export const MyMessagesModal = ({ user, onClose, onMessageVendor }) => {
   );
 };
 
-export const ManageReportsModal = (user, onClose) => {
+export const ManageReportsModal = ({user, onClose}) => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

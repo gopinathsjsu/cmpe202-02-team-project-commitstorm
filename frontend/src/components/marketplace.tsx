@@ -39,7 +39,7 @@ const mapListingToPostProps = (listing) => {
         
         // Try to parse JSON string
         if (trimmedImages.startsWith('[') || trimmedImages.startsWith('"')) {
-          images = JSON.parse(trimmedImages);
+          images = [JSON.parse(trimmedImages)];
         } else {
           // If it's a single URL string (not JSON), use it directly
           images = [trimmedImages];

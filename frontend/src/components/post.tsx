@@ -31,6 +31,7 @@ function Post( props: ListingDetailProps ) {
         setImageError(false);
         setImageSrc(props?.imageUrl || 'https://via.placeholder.com/400x200?text=No+Image');
         errorHandledRef.current = false;
+        setImageLoading(false);
     }, [props.imageUrl]);
 
     const sendMessageToVendor = (vendorId: string | number) => {
