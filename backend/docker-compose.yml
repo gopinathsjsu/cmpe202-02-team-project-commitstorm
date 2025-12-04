@@ -1,0 +1,15 @@
+# ~/app/docker-compose.yml
+services:
+  api:
+    image: sonalilonkar/campus-api:demo
+    container_name: campus_api
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/api/health > /dev/null"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
