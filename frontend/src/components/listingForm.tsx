@@ -1,4 +1,6 @@
-import { useState } from 'react';
+/// <reference types="vite/client" />
+window.global ||= window;
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { FileUploader } from "react-drag-drop-files";
 import '../css/listingForm.css';
@@ -12,62 +14,70 @@ const ListingForm = () => {
   const categories = ["Arts & Crafts","Automotive","Books","Clothing","Electronics","Electronics & Gadgets","Furniture",
   "Health & Beauty","Home & Garden","Musical Instruments","Office Supplies","Sports","Toys & Games"];
   const conditions = {
-    NEW: 'New', 
-    LIKE_NEW: 'Like New', 
+    NEW: 'New',
+    LIKE_NEW: 'Like New',
     GOOD: 'Good',
     FAIR: 'Fair',
     POOR: 'Poor'
   };
 
   const categoriyIds = {
-    "Arts & Crafts": "982b701b-accd-47d3-ab5a-a63807db2d13",
-    "Automotive": "8ea454e5-a2a0-454a-93ee-2ee4cc1d0159",
-    "Books": "2dfe2c43-c275-445e-aac4-db17e83fdd02",
-    "Clothing": "3b28542d-ae26-4be3-8075-f48cf6437967",
-    "Electronics": "2ce42fb7-e878-4499-8db7-13c8fb76a12f",
-    "Electronics & Gadgets": "10ecb86a-0f87-42b8-b0bf-a5e317a7b9bb",
-    "Furniture": "8f0bd49e-2a00-43e6-9d12-31915c9494b6",
-    "Health & Beauty": "433db090-ff69-4363-af00-31db5155f91b",
-    "Home & Garden": "304c8fec-5df0-48ba-84d8-648171d12587",
-    "Musical Instruments": "3b3979e8-0368-4ce3-aad8-555017b545cd",
-    "Office Supplies": "4da16f3c-00d6-40e2-bef4-4fa6735bf24c",
-    "Sports": "dacbe637-1498-465a-806b-3f809d933488",
-    "Toys & Games": "0a598b73-0ec3-4307-94b5-6767110ae7ab"
+    "Appliance": "8b57f97b-8510-4055-b76b-f065203c78b5",
+    "Arts & Crafts": "1664ec99-d9c5-491f-b8f1-735a1dcfe860",
+    "Automotive": "738e94a7-4f68-4c2c-9f50-9a0217b8562b",
+    "Books": "40353a8e-b884-49c2-b12f-682d18db16c0",
+    "Clothing": "87227c09-7c13-4212-bb56-ab8eb7268566",
+    "Collectibles": "8c869880-3218-44a1-8d73-fef401eb6a6f",
+    "Electronics": "109b241c-7f4b-46a8-a2c7-f691828b6df4",
+    "Furniture": "8790a73b-3d7d-4bf1-bfe2-9b6148881941",
+    "Health & Beauty": "d547a8b3-033f-4d56-8884-aebb331824bc",
+    "Home & Garden": "476cc520-0b51-42b8-b852-6ac90a107c8f",
+    "Jewelery": "8e5ebac3-8efe-4efa-8b3c-7f044c596906",
+    "Musical Instruments": "2f737811-d95a-4d26-89a9-4e8572491f58",
+    "Office Supplies": "574ae657-9b54-4f87-b054-b9793c97f440",
+    "Sports": "ca1e92e1-aeef-4dc9-8b62-b2dcf17873ab",
+    "Toys & Games": "407a1eef-ef45-4959-8618-35e6f6f4f9a0"
   }
 
-  const [s3Urls, setS3Urls] = useState<string[]>([]);
   const generateS3Url = async () => {
-    let regex = new RegExp('[^.]+$');
     let batch = false
     let data = {}
     if (file && file.length > 1){
       batch = true;
-      data = file.map(f => ({contentType: `image/${f.name.match(regex)}`, fileName: f.name}));
-    }
-    else if (file){
-      data = {contentType: `image/${file[0].name.match(regex)}`, fileName: file[0].name}
-    }
-    else{
-      return
+      data = file.map(f => ({contentType: f.item(0).type, fileName: f.item(0).name}));
+
+    }else{
+      data = {contentType: file[0].item(0).type, fileName: file[0].item(0).name};
     }
     try{
-      const urls = await getS3Url(data, batch)
-      setS3Urls(urls)
+      const response = await getS3Url(data, batch);
+      const uploadResponse = await fetch(response.presignedUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': file[0].item((0)).type
+        },
+        body: file[0].item((0))
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload image to S3');
+      }
+      return response.publicUrl
     } catch (e){
       console.log('Could not generate S3 url: ' + e)
     }
   }
   
   const onSubmit = async (data: { title: string; description: string; category: number; condition: string; price: number; }) => {
-    generateS3Url()
+    const pubUrl = await generateS3Url();
     let postData = {
       sellerId: user.id,
       title: data.title,
       description: data.description,
-      category: categoriyIds[categories[data.category] as keyof typeof categoriyIds],
+      categoryId: categoriyIds[categories[data.category] as keyof typeof categoriyIds],
       condition: data.condition.toUpperCase(),
       price: data.price,
-      imageUrl: s3Urls
+      images: JSON.stringify(pubUrl)
     }
     try{
       const submit = await postListings(postData);
@@ -78,11 +88,11 @@ const ListingForm = () => {
     }
   }
 
-  const [file, setFile] = useState<File[] | null>(null);
-  const fileTypes = ["JPEG", "PNG", "GIF"];
+  const [file, setFile] = useState<File[]>([]);
+  const fileTypes = ["JPG","JPEG", "PNG", "GIF"];
 
   const handleChange = (file: File | File[]) => {
-    setFile(Array.isArray(file)? file: [file]);
+    setFile(Array.isArray(file) ? file : [file]);
   };
 
   return (
@@ -94,7 +104,7 @@ const ListingForm = () => {
             placeholder='Title'
           />
           <input className='listing-content'
-            {...register('description', { required: "Description is required." , maxLength: 100 })}
+            {...register('description', { maxLength: 100 })}
             placeholder='Description'
           />
           <select className='listing-selection' {...register('category', { required: "Category is required." })}>

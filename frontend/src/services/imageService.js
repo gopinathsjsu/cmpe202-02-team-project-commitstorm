@@ -3,13 +3,13 @@ import apiClient from './apiClient.js';
 /**
  * fetch S3Urls with image
  * @param {Object} data - formated filename and contentType
- * @returns {Promise<Array>} 
+ * @returns {Promise<Object>} 
  */
 export const getS3Url = async (data, batch=false) =>{
   try{
     let url = '/api/images/presigned-url'
     if (batch){ url += '/batch'}
-    const response = await apiClient.post('/api/images/presigned-url', data);
+    const response = await apiClient.post(url, data);
     return response.data;
   } catch (error) {
     throw {
