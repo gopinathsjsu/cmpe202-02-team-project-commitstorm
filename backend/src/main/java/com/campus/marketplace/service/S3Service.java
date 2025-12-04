@@ -13,6 +13,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -221,11 +222,17 @@ public class S3Service {
             return S3Client.builder()
                     .region(Region.of(region))
                     .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                    .httpClient(ApacheHttpClient.builder()
+                            .connectionTimeout(Duration.ofSeconds(10))
+                            .build())
                     .build();
         } else {
             // Use default credentials provider
             return S3Client.builder()
                     .region(Region.of(region))
+                    .httpClient(ApacheHttpClient.builder()
+                            .connectionTimeout(Duration.ofSeconds(10))
+                            .build())
                     .build();
         }
     }
