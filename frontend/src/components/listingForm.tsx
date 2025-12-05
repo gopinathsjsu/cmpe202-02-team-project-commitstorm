@@ -98,7 +98,7 @@ const ListingForm = () => {
       <div className='listing-form'>
         <form className='lisitng-form-content' onSubmit={handleSubmit(onSubmit)}>
           <input className='listing-content'
-            {...register('title', { required: "Title is required." , maxLength: 100 })}
+            {...register('title', { required: "Title is required." , maxLength: 500 })}
             placeholder='Title'
           />
           <input className='listing-content'
