@@ -11,8 +11,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -23,6 +21,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -37,6 +36,7 @@ import com.campus.marketplace.service.CategoryService;
 import com.campus.marketplace.service.ChatbotSearchService;
 import com.campus.marketplace.service.ListingService;
 import com.campus.marketplace.service.UserService;
+import com.campus.marketplace.util.JwtUtil;
 
 import jakarta.validation.Valid;
 
@@ -59,6 +59,18 @@ public class ListingController {
     
     @Autowired
     private ChatbotSearchService chatbotSearchService;
+    
+    @Autowired
+    private JwtUtil jwtUtil;
+    
+    // Helper method to get user ID from JWT token
+    private String getUserIdFromToken(String authHeader) {
+        String token = authHeader.substring(7);
+        String email = jwtUtil.extractUsername(token);
+        return userService.getUserByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email))
+                .getId();
+    }
     
     /**
      * Create a listing.
@@ -377,35 +389,87 @@ public class ListingController {
     
     /**
      * Update listing status only.
-     * Admin only.
+     * Admins can set any status. Sellers can update their own listings, but DISABLED is admin-only.
      * @param id listing id
      * @param status new status
-     * @return 200 with updated ListingDTO or 404 if not found
+     * @param authHeader JWT token for authentication
+     * @return 200 with updated ListingDTO, 403 if not authorized, or 404 if not found
      */
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ListingDTO> updateListingStatus(@PathVariable String id, @RequestParam Listing.ListingStatus status) {
-        ensureAdminAccess();
+    public ResponseEntity<ListingDTO> updateListingStatus(
+            @PathVariable String id, 
+            @RequestParam Listing.ListingStatus status,
+            @RequestHeader("Authorization") String authHeader) {
         try {
+            String userId = getUserIdFromToken(authHeader);
+            
+            // Check if listing exists
+            Listing listing = listingService.getListingById(id)
+                    .orElseThrow(() -> new RuntimeException("Listing not found"));
+            
+            // Check if user is admin
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                    .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+            
+            // Check if user owns the listing
+            boolean isOwner = listing.getSeller().getId().equals(userId);
+            
+            // DISABLED status is admin-only
+            if (status == Listing.ListingStatus.DISABLED && !isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            
+            // Only admin or owner can update status
+            if (!isAdmin && !isOwner) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            
             Listing updatedListing = listingService.updateListingStatus(id, status);
             return ResponseEntity.ok(new ListingDTO(updatedListing));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
     
     /**
      * Delete listing.
-     * Admin only.
+     * Admin can delete any listing, sellers can delete their own listings.
      * @param id listing id
-     * @return 204 No Content
+     * @param authHeader JWT token for authentication
+     * @return 204 No Content or 403 Forbidden if not authorized
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteListing(@PathVariable String id) {
-        ensureAdminAccess();
-        listingService.deleteListing(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> deleteListing(
+            @PathVariable String id,
+            @RequestHeader("Authorization") String authHeader) {
+        try {
+            String userId = getUserIdFromToken(authHeader);
+            
+            // Check if listing exists
+            Listing listing = listingService.getListingById(id)
+                    .orElseThrow(() -> new RuntimeException("Listing not found"));
+            
+            // Check if user is admin or owns the listing
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                    .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
+            
+            boolean isOwner = listing.getSeller().getId().equals(userId);
+            
+            if (!isAdmin && !isOwner) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+            
+            listingService.deleteListing(id);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
     
     /**
@@ -440,14 +504,5 @@ public class ListingController {
         );
         Page<ListingDTO> listingDTOs = listings.map(ListingDTO::new);
         return ResponseEntity.ok(listingDTOs);
-    }
-    
-    private void ensureAdminAccess() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
-                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
-        if (!isAdmin) {
-            throw new AccessDeniedException("Admin access required");
-        }
     }
 }
