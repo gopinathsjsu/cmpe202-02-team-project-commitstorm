@@ -56,6 +56,18 @@ export const postListings = async (data) => {
   }
 };
 
+export const updateListingStatusById = async (postId, status) => {
+  try {
+    const response = await apiClient.patch(`api/listings/${postId}/`, data);
+    return response.data;
+  } catch (error) {
+    throw {
+      message: error.message || 'Failed to create listing',
+      status: error.status || 500,
+    };
+  }
+};
+
 /**
  * Get listings by seller ID
  * @param {string} sellerId - Seller user ID
