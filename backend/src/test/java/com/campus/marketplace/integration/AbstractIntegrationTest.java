@@ -22,6 +22,9 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.UUID;
 
@@ -32,11 +35,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
+@Testcontainers
 @Sql(scripts = "classpath:sql/cleanup.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 @Sql(scripts = "classpath:sql/cleanup.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ComponentScan(basePackages = "com.campus.marketplace")
 public abstract class AbstractIntegrationTest {
+
+    @Container
+    static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
+            .withDatabaseName("campusMarket_test")
+            .withUsername("test")
+            .withPassword("test");
 
     @Autowired
     protected MockMvc mockMvc;
@@ -57,10 +67,10 @@ public abstract class AbstractIntegrationTest {
 
     @DynamicPropertySource
     static void overrideDataSourceProperties(DynamicPropertyRegistry registry) {
-        // Use RDS database for integration tests
-        registry.add("spring.datasource.url", () -> "jdbc:mysql://commitstorm.c3k8w4gacaeh.us-west-2.rds.amazonaws.com:3306/campusMarket?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC");
-        registry.add("spring.datasource.username", () -> "admin");
-        registry.add("spring.datasource.password", () -> "commitstorm");
+        // Use Testcontainers MySQL for integration tests
+        registry.add("spring.datasource.url", () -> mysql.getJdbcUrl());
+        registry.add("spring.datasource.username", () -> mysql.getUsername());
+        registry.add("spring.datasource.password", () -> mysql.getPassword());
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
         registry.add("spring.jpa.show-sql", () -> "false");

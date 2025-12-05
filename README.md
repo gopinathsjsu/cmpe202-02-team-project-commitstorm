@@ -35,16 +35,12 @@ A comprehensive campus marketplace application built with Spring Boot that allow
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/gopinathsjsu/cmpe202-02-team-project-commitstorm.git
 cd cmpe202-02-team-project-commitstorm
 ```
 
 ### 2. Database Setup
-The application is configured to use AWS RDS MySQL database:
-- **Host**: commitstorm.c3k8w4gacaeh.us-west-2.rds.amazonaws.com
-- **Database**: campusMarket
-- **Username**: admin
-- **Password**: commitstorm
+The application is configured to use AWS RDS MySQL database.
 
 The database connection is already configured in `backend/src/main/resources/application.yml`. No additional setup is required.
 
@@ -75,7 +71,7 @@ Once the application is running, you can access:
 
 - **Swagger UI**: http://localhost:8080/swagger-ui.html (local) / http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/swagger-ui.html (production)
 - **API Docs**: http://localhost:8080/api-docs (local) / http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/api-docs (production)
-- **Health Check**: http://localhost:8080/health (local) / http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/health (production)
+- **Health Check**: http://localhost:8080/health (local) / http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/api/health (production)
 
 ## API Endpoints
 
@@ -85,6 +81,10 @@ The application provides REST APIs for all major operations:
 - **Users**: `/api/users` - User management
 - **Categories**: `/api/categories` - Category management
 - **Listings**: `/api/listings` - Product listings
+- **Images**: `/api/images` - Image upload and management
+  - `POST /api/images/presigned-url` - Get presigned URL for upload
+  - `POST /api/images/confirm-upload` - Confirm upload and make public
+  - `GET /api/images/presigned-get-url` - Get presigned URL for viewing
 - **Wishlist**: `/api/wishlist` - User wishlists
 - **Messages**: `/api/messages` - Communication system
 - **Transactions**: `/api/transactions` - Purchase management
@@ -105,12 +105,17 @@ The application uses the following main entities:
 - `transactions` - Purchase transactions
 - `reviews` - Product and seller reviews
 
-## Sample Data
+## UML Diagrams
 
-The application automatically initializes with sample data:
-- Admin user: `admin@campusmarket.com`
-- Sample users: `john.doe@university.edu`, `jane.smith@university.edu`
-- Predefined categories: Electronics, Books, Clothing, Furniture, etc.
+### Deployment Diagram
+![Deployment Diagram](Resources/Deployment_Diagram.png)
+
+*Shows the overall system architecture including AWS infrastructure components, Docker containers, and external service integrations.*
+
+### Component Diagram
+![Component Diagram](Resources/Component_Diagram.png)
+
+*Displays the high-level software components and their interactions, showing how different modules communicate within the system.*
 
 ## Configuration
 
@@ -149,252 +154,194 @@ backend/
 
 ## Testing
 
-The application includes a comprehensive test suite with unit tests, integration tests, and security tests.
+The application includes comprehensive test coverage with 33 test files across unit, integration, and security tests.
 
-### Test Prerequisites
-
-Before running tests, ensure you have:
-- **Java 17** or higher
-- **Maven 3.6** or higher
-- **Docker** (required for Testcontainers integration tests)
-  - Testcontainers uses Docker to spin up MySQL containers for integration tests
-  - Make sure Docker is running before executing tests
+### Prerequisites
+- Java 17+, Maven 3.6+, Docker (for integration tests)
 
 ### Running Tests
 
-#### Run All Tests
 ```bash
 cd backend
+
+# Run all tests
 mvn test
-```
 
-#### Run Specific Test Class
-```bash
-# Integration tests
-mvn test -Dtest=AuthControllerIntegrationTest
-mvn test -Dtest=TransactionControllerIntegrationTest
-mvn test -Dtest=MessageControllerIntegrationTest
-
-# Unit tests
-mvn test -Dtest=AuthServiceTest
-mvn test -Dtest=TransactionServiceTest
-mvn test -Dtest=MessageServiceTest
-
-# Security tests
-mvn test -Dtest=SecurityTest
-```
-
-#### Run Tests by Package
-```bash
-# All integration tests
-mvn test -Dtest="com.campus.marketplace.integration.*"
-
-# All service unit tests
-mvn test -Dtest="com.campus.marketplace.service.*Test"
-
-# All security tests
-mvn test -Dtest="com.campus.marketplace.security.*"
-```
-
-#### Run Tests with Coverage
-```bash
-# Generate test coverage report (requires jacoco plugin)
+# Run with coverage report
 mvn test jacoco:report
 # View report at: backend/target/site/jacoco/index.html
+
+# Skip integration tests (faster)
+mvn test -Dtest="!*IntegrationTest*"
 ```
 
 ### Test Structure
+- **Integration Tests** (13 files): Full API testing with Testcontainers MySQL
+- **Controller Tests** (12 files): REST endpoint validation
+- **Service Tests** (4 files): Business logic unit tests
+- **Config Tests** (2 files): Configuration validation
+- **Exception Tests** (1 file): Error handling
+- **Util Tests** (1 file): Utility functions
 
-The test suite is organized as follows:
-
-```
-backend/src/test/java/com/campus/marketplace/
-├── integration/              # Integration tests (use Testcontainers)
-│   ├── IntegrationTestBase.java
-│   ├── AuthControllerIntegrationTest.java
-│   ├── TransactionControllerIntegrationTest.java
-│   ├── MessageControllerIntegrationTest.java
-│   ├── ReviewControllerIntegrationTest.java
-│   ├── ListingControllerIntegrationTest.java
-│   ├── ListingIntegrationTest.java
-│   ├── TransactionIntegrationTest.java
-│   └── WishlistIntegrationTest.java
-├── service/                 # Service unit tests (use Mockito)
-│   ├── AuthServiceTest.java
-│   ├── TransactionServiceTest.java
-│   └── MessageServiceTest.java
-└── security/                # Security and authorization tests
-    └── SecurityTest.java
-```
-
-### Test Types
-
-#### 1. Integration Tests
-- **Framework**: JUnit 5 + Testcontainers + MockMvc
-- **Database**: Uses Testcontainers to spin up MySQL 8.0 containers
-- **Scope**: Tests full request/response cycle through controllers
-- **Location**: `backend/src/test/java/com/campus/marketplace/integration/`
-
-**Key Features:**
-- Tests run against real MySQL database in Docker containers
-- Database is automatically created and cleaned up per test
-- Tests verify complete transaction flows including automatic message sending
-- All database operations are transactional and rolled back after each test
-
-**Example:**
-```java
-@AutoConfigureMockMvc
-@Transactional
-public class AuthControllerIntegrationTest extends IntegrationTestBase {
-    // Tests authentication endpoints with real database
-}
-```
-
-#### 2. Unit Tests
-- **Framework**: JUnit 5 + Mockito
-- **Scope**: Tests individual service methods in isolation
-- **Location**: `backend/src/test/java/com/campus/marketplace/service/`
-
-**Key Features:**
-- Uses mocks to isolate service logic
-- Fast execution (no database required)
-- Tests business logic and error handling
-
-**Example:**
-```java
-@ExtendWith(MockitoExtension.class)
-class AuthServiceTest {
-    @Mock
-    private UserRepository userRepository;
-    
-    @InjectMocks
-    private AuthService authService;
-    // Tests service methods with mocked dependencies
-}
-```
-
-#### 3. Security Tests
-- **Framework**: JUnit 5 + Testcontainers + MockMvc
-- **Scope**: Tests JWT authentication, authorization, and role-based access
-- **Location**: `backend/src/test/java/com/campus/marketplace/security/`
-
-**Key Features:**
-- Tests public vs protected endpoints
-- Validates JWT token handling
-- Tests role-based access control
-- Verifies inactive user restrictions
-
-### Test Coverage
-
-The test suite covers:
-
-✅ **Controllers** (Integration Tests):
-- AuthController (register, login, logout, current user)
-- TransactionController (request-to-buy, mark-sold, reject)
-- MessageController (send, get, unread messages, mark as read)
-- ReviewController (create, get reviews)
-- ListingController (CRUD, search, filters)
-
-✅ **Services** (Unit Tests):
-- AuthService (authentication, registration)
-- TransactionService (transaction flow, message automation)
-- MessageService (messaging operations)
-
-✅ **Security**:
-- JWT authentication and validation
-- Authorization checks
-- Role-based access control
-- Inactive user handling
-
-✅ **Business Logic**:
-- Transaction flow (request → accept/reject)
-- Automatic message sending for transactions and reviews
-- Listing status transitions
-- Review creation and validation
-
-### Troubleshooting Tests
-
-#### Docker Not Running
-If you see errors like "Could not find a valid Docker environment":
-```bash
-# Start Docker Desktop or Docker daemon
-# On macOS:
-open -a Docker
-
-# On Linux:
-sudo systemctl start docker
-```
-
-#### Testcontainers Connection Issues
-If tests fail with connection errors:
-```bash
-# Verify Docker is accessible
-docker ps
-
-# Check Testcontainers configuration
-# Tests use MySQL 8.0 container with reuse enabled
-```
-
-#### Port Conflicts
-If you see port binding errors:
-```bash
-# Tests use random ports, but if issues persist:
-# Check for running MySQL instances
-docker ps | grep mysql
-
-# Stop conflicting containers
-docker stop <container-id>
-```
-
-#### Database Migration Issues
-If Flyway migrations fail in tests:
-```bash
-# Tests automatically run migrations
-# If issues occur, check:
-# 1. Flyway is enabled in test configuration
-# 2. Migration files are in src/main/resources/db/migration/
-```
-
-### Continuous Integration
-
-Tests are designed to run in CI/CD pipelines:
-
-```yaml
-# Example GitHub Actions workflow
-- name: Run Tests
-  run: |
-    cd backend
-    mvn test
-```
-
-**Requirements for CI:**
-- Docker must be available in CI environment
-- Testcontainers will automatically pull MySQL image if needed
-- Tests are isolated and can run in parallel
-
-### Manual API Testing
-
-For manual API testing, you can also use:
-- **Swagger UI**: http://localhost:8080/swagger-ui.html (local) / http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/swagger-ui.html (production)
+### Manual Testing
 - **Postman Collection**: `Campus Marketplace API.postman_collection.json`
-- **cURL commands**: See API_DOCUMENTATION.md
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
+- **Load Tests**: `backend/scripts/load-tests/k6-*.js`
 
-### Detailed Testing Documentation
+For detailed testing instructions, see **[TESTING.md](Resources/TESTING.md)**.
 
-For comprehensive testing instructions, see **[TESTING.md](backend/TESTING.md)** which includes:
-- Detailed setup instructions
-- Test structure explanation
-- Writing new tests guide
-- Troubleshooting common issues
-- CI/CD integration examples
 
-## Contributing
+## 🚀 Production Deployment
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+### AWS Architecture Overview
+
+```
+┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
+│   Internet      │────▶│  Application Load    │────▶│   Target Group  │
+│   Users         │     │  Balancer (ALB)      │     │   (Port 8080)   │
+└─────────────────┘     └──────────────────────┘     └─────────────────┘
+                                │                                 │
+                                │                                 ▼
+                                │                       ┌─────────────────┐
+                                │                       │   EC2 Instance  │
+                                │                       │   (Docker)      │
+                                ▼                       │                 │
+                      ┌──────────────────────┐          │  ┌────────────┐ │
+                      │   Security Groups    │          │  │ Spring Boot│ │
+                      │                      │          │  │   App      │ │
+                      │ • ALB Security Group │          │  │ (Port 8080)│ │
+                      │   - Inbound: 80,443  │          │  └────────────┘ │
+                      │   - Outbound: All    │          └─────────────────┘
+                      │                      │
+                      │ • EC2 Security Group │                   │
+                      │   - Inbound: 8080    │                   ▼
+                      │     (from ALB only)  │         ┌─────────────────┐
+                      │   - Outbound: All    │         │   AWS RDS       │
+                      └──────────────────────┘         │   MySQL 8.0     │
+                                                       │   Database      │
+                                                       └─────────────────┘
+```
+
+### Infrastructure Components
+
+#### **Application Load Balancer (ALB)**
+- **Type**: Application Load Balancer
+- **Listeners**: HTTP (80) and HTTPS (443)
+- **Target Groups**: 
+  - Protocol: HTTP
+  - Port: 8080
+  - Health Check: `/api/health`
+  - Healthy threshold: 2
+  - Unhealthy threshold: 2
+  - Timeout: 5 seconds
+  - Interval: 30 seconds
+
+#### **Security Groups**
+- **ALB Security Group**:
+  - Inbound: HTTP (80), HTTPS (443) from 0.0.0.0/0
+  - Outbound: All traffic to 0.0.0.0/0
+
+- **EC2 Security Group**:
+  - Inbound: HTTP (8080) from ALB Security Group only
+  - Outbound: All traffic to 0.0.0.0/0
+
+#### **EC2 Instance**
+- **AMI**: Amazon Linux 2 or Ubuntu
+- **Instance Type**: t3.micro (for development) or t3.small+ (for production)
+- **Storage**: 20GB+ EBS
+- **Docker**: Pre-installed and configured
+
+#### **RDS MySQL Database**
+- **Engine**: MySQL 8.0
+- **Instance Class**: db.t3.micro (development) or db.t3.small+ (production)
+- **Storage**: 20GB+ with auto-scaling
+- **Multi-AZ**: Enabled for production
+- **Backup**: Automated daily backups
+
+### Deployment Process
+
+#### Prerequisites
+- AWS Account with appropriate permissions
+- EC2 instance with Docker installed
+- RDS MySQL database created
+- ALB configured with target groups
+- Security groups properly configured
+
+#### Environment Variables
+Create a `.env` file in the `backend/` directory:
+
+```bash
+# Database Configuration
+SPRING_DATASOURCE_URL=your-db-url
+SPRING_DATASOURCE_USERNAME=your-db-username
+SPRING_DATASOURCE_PASSWORD=your-db-password
+
+# AWS S3 Configuration (for image uploads)
+AWS_ACCESS_KEY_ID=your-aws-access-key
+AWS_SECRET_ACCESS_KEY=your-aws-secret-key
+AWS_S3_BUCKET_NAME=your-s3-bucket-name
+AWS_REGION=us-west-2
+
+# OpenAI Configuration (for chatbot)
+OPENAI_API_KEY=your-openai-api-key
+
+# Server Configuration
+SERVER_PORT=8080
+```
+
+
+### Deployment Scripts
+Added doc on deployment in Resources.
+
+#### AWS Cloud Infrastructure (Manual Console Deployment)
+The application is deployed on AWS using manually configured resources through the AWS Management Console:
+
+**Infrastructure Components:**
+- **Application Load Balancer (ALB)**: `alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com`
+- **EC2 Instance**: Amazon Linux 2 with Docker, running Spring Boot application
+- **RDS MySQL Database**: MySQL 8.0 instance for data persistence
+- **S3 Bucket**: For image storage with presigned URLs
+- **Security Groups**: Properly configured for secure communication
+- **VPC**: Isolated network with public/private subnets
+
+**Key Configurations:**
+- ALB forwards HTTP traffic to EC2 instance on port 8080
+- Health checks configured for `/api/health` endpoint
+- Database security group restricts access to EC2 instances only
+- Application runs in Docker container with environment variables
+
+### Monitoring & Observability
+
+#### Health Checks
+- **Application Health**: `/api/health` endpoint
+- **Database Connectivity**: Automatic in health check
+- **ALB Target Health**: Configured in target group
+
+
+### Documentation
+
+- **[API Documentation](API_DOCUMENTATION.md)** - Detailed API specifications
+- **[Testing Guide](backend/TESTING.md)** - Comprehensive testing documentation
+
+#### Postman Collection
+- **Full Collection**: `Campus Marketplace API.postman_collection.json`
+- **Smoke Tests**: `backend/postman/Smoke_Test_Collection.json`
+- Import into Postman and set `base_url` variable
+
+#### Load Testing
+```bash
+# Install k6
+brew install k6
+
+# Run smoke test (basic functionality)
+k6 run backend/scripts/load-tests/k6-smoke-test.js
+
+# Run load test (performance under load)
+k6 run --vus 50 --duration 2m backend/scripts/load-tests/k6-load-test.js
+
+# For production testing, set BASE_URL environment variable:
+# BASE_URL=http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com k6 run backend/scripts/load-tests/k6-smoke-test.js
+```
 
 ## License
 
@@ -407,123 +354,4 @@ This project is part of CMPE 202 coursework.
 - Shivani Jariwala
 - Alex
 
-## 🚀 Production Deployment
-
-### Architecture
-
-```
-┌─────────────┐
-│   Client    │
-│  (React)    │
-└──────┬──────┘
-       │ HTTPS
-       ▼
-┌─────────────┐
-│   Nginx     │
-│ (Port 80)   │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐      ┌─────────────┐
-│   Spring    │◄────►│   MySQL     │
-│    Boot     │      │     RDS     │
-│ (Port 8080) │      │             │
-└─────────────┘      └─────────────┘
-     EC2                  AWS RDS
-```
-
-### Quick Deploy
-
-1. **Prerequisites**:
-   - EC2 instance with Docker
-   - RDS MySQL database
-   - Security groups configured
-
-2. **Deploy**:
-   ```bash
-   cd backend
-   cp .env.example .env
-   # Edit .env with your RDS credentials
-   ./scripts/deploy.sh
-   ```
-
-3. **Verify**:
-   ```bash
-   curl http://localhost:8080/api/health  # Local development
-   # OR for production:
-   curl http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/api/health
-   ```
-
-### Documentation
-
-- **[Production Deployment Guide](backend/PRODUCTION_DEPLOYMENT.md)** - Complete deployment checklist
-- **[Runbook](backend/RUNBOOK.md)** - Operations and troubleshooting guide
-- **[Backup & Rollback](backend/BACKUP_ROLLBACK.md)** - Backup procedures and rollback steps
-- **[API Documentation](API_DOCUMENTATION.md)** - Detailed API specifications
-- **[Testing Guide](backend/TESTING.md)** - Comprehensive testing documentation
-
-### Demo Accounts
-
-After running V5 migration:
-- **Admin**: `admin@demo.campusmarket.com` / `demo123`
-- **Seller**: `seller@demo.campusmarket.com` / `demo123`
-- **Buyer**: `buyer@demo.campusmarket.com` / `demo123`
-
-### Testing
-
-#### Postman Collection
-- **Full Collection**: `Campus Marketplace API.postman_collection.json`
-- **Smoke Tests**: `backend/postman/Smoke_Test_Collection.json`
-- Import into Postman and set `base_url` variable
-
-#### Load Testing
-```bash
-# Install k6: https://k6.io/docs/getting-started/installation/
-k6 run backend/scripts/load-tests/k6-smoke-test.js
-k6 run --vus 50 --duration 2m backend/scripts/load-tests/k6-load-test.js
-```
-
-#### Demo Script
-```bash
-./backend/scripts/demo-script.sh
-```
-
-## 📊 Monitoring
-
-### Health Check
-```bash
-curl http://your-domain/api/health
-```
-
-### Logs
-```bash
-# Application logs
-docker logs campus-marketplace-api --tail 100 -f
-
-# Nginx logs
-tail -f /var/log/nginx/campus-marketplace-access.log
-```
-
-## 🔧 Maintenance
-
-### Reset Demo Data
-```bash
-./backend/scripts/reset-demo.sh
-```
-
-### Update Application
-```bash
-git pull
-cd backend
-./scripts/deploy.sh
-```
-
-## Support
-
-For questions or issues, please contact the development team or create an issue in the repository.
-
-## 📚 Additional Resources
-
-- **Swagger UI**: http://localhost:8080/swagger-ui.html (local) / http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/swagger-ui.html (production)
-- **Postman Collection**: Import `Campus Marketplace API.postman_collection.json`
-- **Authentication Guide**: [AUTHENTICATION.md](backend/AUTHENTICATION.md)
+## Contribution
