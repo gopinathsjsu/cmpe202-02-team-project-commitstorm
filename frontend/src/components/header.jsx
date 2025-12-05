@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router';
+import { ToastContainer, toast } from 'react-toastify';
+import { askChatbot } from '../services/searchService';
 
 const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout, onMyProfileClick, onMyListingsClick, onMyMessagesClick, onReportsClick }) => {
   const [searchQuery, setSearchQuery] = useState('')
+  const [chatbotQuery, setChatbotQuery] = useState('')
   const [showProfileDropdown, setShowProfileDropdown] = useState(false)
   const navigate = useNavigate();
   const location = useLocation();
@@ -49,6 +52,17 @@ const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout, onMyProfi
       navigate(`/marketplace?${params.toString()}`);
     }
   };
+
+  const handleChatbotSearch = async (e) => {
+    e.preventDefault();
+    const response = await askChatbot(chatbotQuery);
+    if(response.results.length > 0){
+      toast.success(`We do have a Listing. Sold by ${response.results[0].sellerName} at price: $${response.results[0].price}`);
+    }
+    else{
+      toast.error('No listings exists');
+    }
+  }
 
   return (
     <div>
@@ -180,7 +194,7 @@ const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout, onMyProfi
         <div className="max-w-7xl mx-auto text-center">
           
           {/* Search Bar */}
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto space-y-2">
             <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
               <input
                 type="text"
@@ -195,9 +209,24 @@ const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout, onMyProfi
               >
                 Search
               </button>
+              <br/>
+              <input
+                type="text"
+                placeholder="Ask our bot"
+                value={chatbotQuery}
+                onChange={(e) => setChatbotQuery(e.target.value)}
+                className="flex-1 px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+              <button 
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-lg font-medium transition-colors"
+                onClick={handleChatbotSearch}
+              >
+                Ask
+              </button>
             </form>
           </div>
         </div>
+        <ToastContainer />
       </section>
     </div>
   )
