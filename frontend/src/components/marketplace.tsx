@@ -17,6 +17,8 @@ import '../css/Marketplace.css';
 type MarketplaceProps = {
   onMessageVendor?: (data: { listingId: string, recipientId: string, recipientName: string, listingTitle: string }) => void;
   onReportPost?: (data: { listingId: string, listingTitle: string }) => void;
+  onEditListing?: (listingId: string) => void;
+  onDeleteListing?: (listingId: string, listingTitle?: string) => void;
 };
 
 /**
@@ -91,10 +93,11 @@ const mapListingToPostProps = (listing) => {
     title: listing.title || '',
     sellerId: listing.sellerId, // This is the seller's user ID (userId1)
     listingId: listing.id, // This is the actual listing ID from API
+    status: listing.status || 'ACTIVE', // Include status for SOLD check
   };
 };
 
-export const Marketplace = ({ onMessageVendor, onReportPost }: MarketplaceProps) => {
+export const Marketplace = ({ onMessageVendor, onReportPost, onEditListing, onDeleteListing }: MarketplaceProps) => {
   const [searchParams] = useSearchParams();
   const [allListings, setAllListings] = useState<ListingDetailProps[]>([]);
   const [displayedListings, setDisplayedListings] = useState<ListingDetailProps[]>([]);
@@ -124,7 +127,11 @@ export const Marketplace = ({ onMessageVendor, onReportPost }: MarketplaceProps)
 
     // For price filters, debounce the API call
     const hasPriceInput = filters.minPrice || filters.maxPrice;
-    const delay = hasPriceInput ? 800 : 0; // Wait 800ms for price inputs, immediate for others
+    // Only debounce if user is typing in price fields (not if both are already valid)
+    const minPriceNum = filters.minPrice ? parseFloat(String(filters.minPrice)) : null;
+    const maxPriceNum = filters.maxPrice ? parseFloat(String(filters.maxPrice)) : null;
+    const hasValidPriceRange = minPriceNum !== null && !isNaN(minPriceNum) && maxPriceNum !== null && !isNaN(maxPriceNum);
+    const delay = hasPriceInput && !hasValidPriceRange ? 1000 : (hasPriceInput ? 800 : 0); // Longer delay when typing
 
     filterTimeoutRef.current = setTimeout(() => {
       const fetchListings = async () => {
@@ -135,8 +142,10 @@ export const Marketplace = ({ onMessageVendor, onReportPost }: MarketplaceProps)
           let data: any[] = [];
 
           // Determine which API endpoint to use based on active filters
-          // Price range requires both min and max to be set
-          const hasPriceRange = filters.minPrice && filters.maxPrice;
+          // Price range requires both min and max to be valid numbers
+          const minPrice = filters.minPrice ? parseFloat(String(filters.minPrice)) : null;
+          const maxPrice = filters.maxPrice ? parseFloat(String(filters.maxPrice)) : null;
+          const hasPriceRange = minPrice !== null && !isNaN(minPrice) && maxPrice !== null && !isNaN(maxPrice);
           const hasFilters = filters.status || filters.condition || filters.categoryId || filters.sellerId || hasPriceRange;
 
         if (hasFilters) {
@@ -155,10 +164,8 @@ export const Marketplace = ({ onMessageVendor, onReportPost }: MarketplaceProps)
           if (filters.condition) {
             filterPromises.push(getListingsByCondition(filters.condition));
           }
-          // Only call price range API if both min and max are provided
-          if (hasPriceRange) {
-            const minPrice = Number(filters.minPrice);
-            const maxPrice = Number(filters.maxPrice);
+          // Only call price range API if both min and max are valid numbers
+          if (hasPriceRange && minPrice !== null && maxPrice !== null) {
             filterPromises.push(getListingsByPriceRange(minPrice, maxPrice));
           }
 
@@ -269,33 +276,6 @@ export const Marketplace = ({ onMessageVendor, onReportPost }: MarketplaceProps)
     };
   }, [hasMore, loadingMore, loadMore]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader text="Loading listings..." />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="marketplace-container error-container">
-        <p>Error: {error}</p>
-        <button onClick={() => window.location.reload()}>
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  if (displayedListings.length === 0) {
-    return (
-      <div className="marketplace-container empty-container">
-        <p>No active listings found.</p>
-      </div>
-    );
-  }
-
   const handleFilterChange = (newFilters: any) => {
     setFilters(newFilters);
     // Reset pagination when filters change
@@ -314,6 +294,39 @@ export const Marketplace = ({ onMessageVendor, onReportPost }: MarketplaceProps)
     });
   };
 
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <ListingFilters 
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onClearFilters={handleClearFilters}
+        />
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader text="Loading listings..." />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <ListingFilters 
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onClearFilters={handleClearFilters}
+        />
+        <div className="marketplace-container error-container">
+          <p>Error: {error}</p>
+          <button onClick={() => window.location.reload()}>
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <ListingFilters 
@@ -322,17 +335,40 @@ export const Marketplace = ({ onMessageVendor, onReportPost }: MarketplaceProps)
         onClearFilters={handleClearFilters}
       />
       
-      <div className="marketplace-container">
-        {displayedListings.map((listing) => (
-          <Post key={listing.listingId || listing.id} {...listing} onMessageVendor={onMessageVendor} onReportPost={onReportPost} />
-        ))}
-      </div>
-      {hasMore && (
-        <div ref={observerTarget} style={{ padding: '2rem' }}>
-          {loadingMore && (
-            <Loader text="Loading more listings..." />
-          )}
+      {displayedListings.length === 0 ? (
+        <div className="marketplace-container empty-container">
+          <p>No listings found matching your filters.</p>
         </div>
+      ) : (
+        <>
+          <div className="marketplace-container">
+            {displayedListings.map((listing) => {
+              console.log('Rendering listing:', { 
+                listingId: listing.listingId, 
+                sellerId: listing.sellerId,
+                hasEditHandler: !!onEditListing,
+                hasDeleteHandler: !!onDeleteListing
+              });
+              return (
+                <Post 
+                  key={listing.listingId || listing.id} 
+                  {...listing} 
+                  onMessageVendor={onMessageVendor} 
+                  onReportPost={onReportPost}
+                  onEditListing={onEditListing}
+                  onDeleteListing={onDeleteListing}
+                />
+              );
+            })}
+          </div>
+          {hasMore && (
+            <div ref={observerTarget} style={{ padding: '2rem' }}>
+              {loadingMore && (
+                <Loader text="Loading more listings..." />
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

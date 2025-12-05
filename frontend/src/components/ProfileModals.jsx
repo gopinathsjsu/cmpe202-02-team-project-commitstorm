@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getListings } from '../services/listingsService';
 import { getUserMessages } from '../services/messagesService';
 import { getReportsByStatus } from '../services/reportsService';
@@ -59,6 +59,7 @@ const mapListingToPostProps = (listing) => {
     title: listing.title || '',
     sellerId: listing.sellerId,
     listingId: listing.id,
+    status: listing.status || 'ACTIVE', // Include status for SOLD check
   };
 };
 
@@ -178,43 +179,46 @@ export const MyProfileModal = ({ user, onClose, setUser }) => {
 };
 
 // My Listings Modal
-export const MyListingsModal = ({ user, onClose }) => {
+export const MyListingsModal = ({ user, onClose, onEditListing, onDeleteListing, onMarkAsSold, refreshTrigger }) => {
   const [myListings, setMyListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  const loadMyListings = async () => {
     if (!user) return;
+    
+    setLoading(true);
+    setError('');
+    try {
+      const allListings = await getListings();
+      // Filter by user ID - compare both as strings to handle UUID format
+      const userListings = allListings
+        .filter((listing) => {
+          // Compare sellerId with user.id (both should be UUID strings)
+          return String(listing.sellerId) === String(user.id);
+        })
+        .map(mapListingToPostProps);
+      console.log('My listings filtered:', {
+        userId: user.id,
+        totalListings: allListings.length,
+        myListings: userListings.length,
+        sampleListing: allListings[0]?.sellerId
+      });
+      setMyListings(userListings);
+    } catch (err) {
+      console.error('Error loading listings:', err);
+      setError(err.message || 'Failed to load your listings');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const loadMyListings = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const allListings = await getListings();
-        // Filter by user ID - compare both as strings to handle UUID format
-        const userListings = allListings
-          .filter((listing) => {
-            // Compare sellerId with user.id (both should be UUID strings)
-            return String(listing.sellerId) === String(user.id);
-          })
-          .map(mapListingToPostProps);
-        console.log('My listings filtered:', {
-          userId: user.id,
-          totalListings: allListings.length,
-          myListings: userListings.length,
-          sampleListing: allListings[0]?.sellerId
-        });
-        setMyListings(userListings);
-      } catch (err) {
-        console.error('Error loading listings:', err);
-        setError(err.message || 'Failed to load your listings');
-      } finally {
-        setLoading(false);
-      }
-    };
-
+  useEffect(() => {
     loadMyListings();
-  }, [user]);
+  }, [user, refreshTrigger]);
+
+  // Pass delete handler directly - it will open the confirmation modal
+  // The modal will handle the deletion and App.jsx will handle refresh
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -241,7 +245,13 @@ export const MyListingsModal = ({ user, onClose }) => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {myListings.map((listing) => (
-                <Post key={listing.listingId || listing.id} {...listing} />
+                <Post 
+                  key={listing.listingId || listing.id} 
+                  {...listing}
+                  onEditListing={onEditListing}
+                  onDeleteListing={onDeleteListing}
+                  onMarkAsSold={onMarkAsSold}
+                />
               ))}
             </div>
           )}
@@ -278,8 +288,7 @@ export const MyMessagesModal = ({ user, onClose, onMessageVendor }) => {
     };
 
     loadMessages();
-    const interval = setInterval(loadMessages, 5000);
-    return () => clearInterval(interval);
+    // Removed polling - messages will load when modal opens or user changes
   }, [user]);
 
   const formatTime = (timestamp) => {
