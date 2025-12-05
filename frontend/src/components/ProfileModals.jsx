@@ -19,12 +19,15 @@ const mapListingToPostProps = (listing) => {
         images = listing.images;
       } else if (typeof listing.images === 'string') {
         const trimmedImages = listing.images.trim();
-        if (trimmedImages.startsWith('[') || trimmedImages.startsWith('"')) {
+        if (trimmedImages.startsWith('[')) {
+          images = JSON.parse(trimmedImages);
+        } else if ( trimmedImages.startsWith('"')){
           images = [JSON.parse(trimmedImages)];
+        }
         } else {
           images = [trimmedImages];
         }
-      }
+
       
       if (Array.isArray(images) && images.length > 0) {
         const validImages = images.filter(img => img && typeof img === 'string' && img.trim() !== '');

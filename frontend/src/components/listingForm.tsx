@@ -99,6 +99,7 @@ const ListingForm = () => {
           }
         }
         
+        
         // Find category index
         const categoryName = listing.categoryName || categoryIdToName[listing.categoryId] || '';
         const categoryIndex = categories.findIndex(cat => cat === categoryName);
@@ -266,46 +267,66 @@ const ListingForm = () => {
   return (
     <div className="listing-form-container">
       <div className='listing-form'>
-        <h2 style={{ marginBottom: '20px', color: 'white' }}>{isEditMode ? 'Edit Listing' : 'Create New Listing'}</h2>
+        <h2>{isEditMode ? 'Edit Listing' : 'Create New Listing'}</h2>
         <form className='lisitng-form-content' onSubmit={handleSubmit(onSubmit)}>
-          <input className='listing-content'
-            {...register('title', { required: "Title is required." , maxLength: 500 })}
-            placeholder='Title'
-          />
-          <textarea 
-            className='listing-content'
-            {...register('description', { maxLength: 500 })}
-            placeholder='Description'
-            rows={4}
-            style={{ resize: 'vertical', minHeight: '80px' }}
-          />
-          <select className='listing-selection' {...register('category', { required: "Category is required." })}>
-            <option value="">Select a category</option>
-            {categories.map((option, index) => (
-              <option key={index} value={index}>{option}</option>
-            ))}
-          </select>
-          <select className='listing-selection' {...register('condition', { required: "Condition is required." })}>
-            <option value="">Select a condition</option>
-            {Object.values(conditions).map((option) => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-          <input className='listing-price'
-            type="number" placeholder="Price" pattern="^\d*(\.\d{0,2})?$" step="any" {...register("price", 
-              {required: true, min: 0})} 
-          />
-          <FileUploader
-            multiple={true}
-            handleChange={handleChange}
-            name="file"
-            types={fileTypes}
-          />
-          <p className='listing'>
-            {file && file.length > 0 
-              ? (Array.isArray(file) && file.length > 1 ? `Selected ${file.length} images` : `Selected an image`) 
-              : (isEditMode && existingListing?.images ? "Using existing images (upload new to replace)" : "No files uploaded yet")}
-          </p>
+          <div>
+            <input 
+              className='listing-content'
+              {...register('title', { required: "Title is required." , maxLength: 500 })}
+              placeholder='Title'
+            />
+          </div>
+          
+          <div>
+            <textarea 
+              className='listing-content'
+              {...register('description', { maxLength: 500 })}
+              placeholder='Description'
+              rows={4}
+            />
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <select className='listing-selection' {...register('category', { required: "Category is required." })}>
+              <option value="">Select a category</option>
+              {categories.map((option, index) => (
+                <option key={index} value={index}>{option}</option>
+              ))}
+            </select>
+            
+            <select className='listing-selection' {...register('condition', { required: "Condition is required." })}>
+              <option value="">Select a condition</option>
+              {Object.values(conditions).map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <input 
+              className='listing-price'
+              type="number" 
+              placeholder="Price" 
+              pattern="^\d*(\.\d{0,2})?$" 
+              step="any" 
+              {...register("price", {required: true, min: 0})} 
+            />
+          </div>
+          
+          <div>
+            <FileUploader
+              multiple={true}
+              handleChange={handleChange}
+              name="file"
+              types={fileTypes}
+            />
+            <p className='listing'>
+              {file && file.length > 0 
+                ? (Array.isArray(file) && file.length > 1 ? `Selected ${file.length} images` : `Selected an image`) 
+                : (isEditMode && existingListing?.images ? "Using existing images (upload new to replace)" : "No files uploaded yet")}
+            </p>
+          </div>
+          
           <input className='listing-content' type="submit" value={isEditMode ? 'Update Listing' : 'Create Listing'} />
         </form>
       </div>
