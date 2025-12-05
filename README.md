@@ -383,6 +383,8 @@ Contains UI/UX design artifacts:
 - User interface wireframes
 - User experience mockups
 - Design system documentation
+<img width="1001" height="862" alt="image" src="https://github.com/user-attachments/assets/b4522018-4319-465b-a6f8-f9409b35ff45" />
+
 
 ## License
 
@@ -426,4 +428,13 @@ This project is part of CMPE 202 coursework.
 - Frontend
 
 ### Alex Huang:
-- Frontend
+- Frontend creation
+- Organized and split up tasks for frontend
+- Implemented the listing creation process
+- Created routing system
+- Created Review dashboard
+- Connected frontend with chatbot functionality
+- Designed layout for multiple UI components
+- Created Trello board
+- Acted as scrum manager
+- 
