@@ -1,5 +1,4 @@
-/// <reference types="vite/client" />
-window.global ||= window;
+
 import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { FileUploader } from "react-drag-drop-files";
