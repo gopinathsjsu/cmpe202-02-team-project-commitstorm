@@ -60,7 +60,7 @@ const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout, onMyProfi
       toast.success(`We do have a Listing. Sold by ${response.results[0].sellerName} at price: $${response.results[0].price}`);
     }
     else{
-      toast.error('No listings exists');
+      toast('No listings exists');
     }
   }
 

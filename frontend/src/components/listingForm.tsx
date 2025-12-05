@@ -269,7 +269,7 @@ const ListingForm = () => {
         <h2 style={{ marginBottom: '20px', color: 'white' }}>{isEditMode ? 'Edit Listing' : 'Create New Listing'}</h2>
         <form className='lisitng-form-content' onSubmit={handleSubmit(onSubmit)}>
           <input className='listing-content'
-            {...register('title', { required: "Title is required." , maxLength: 100 })}
+            {...register('title', { required: "Title is required." , maxLength: 500 })}
             placeholder='Title'
           />
           <textarea 
