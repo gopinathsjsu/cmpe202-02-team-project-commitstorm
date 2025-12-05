@@ -105,6 +105,18 @@ The application uses the following main entities:
 - `transactions` - Purchase transactions
 - `reviews` - Product and seller reviews
 
+## UML Diagrams
+
+### Deployment Diagram
+![Deployment Diagram](Resources/Deployment_Diagram.png)
+
+*Shows the overall system architecture including AWS infrastructure components, Docker containers, and external service integrations.*
+
+### Component Diagram
+![Component Diagram](Resources/Component_Diagram.png)
+
+*Displays the high-level software components and their interactions, showing how different modules communicate within the system.*
+
 ## Configuration
 
 Key configuration options in `application.yml`:
@@ -176,26 +188,8 @@ mvn test -Dtest="!*IntegrationTest*"
 - **Swagger UI**: http://localhost:8080/swagger-ui.html
 - **Load Tests**: `backend/scripts/load-tests/k6-*.js`
 
-For detailed testing instructions, see **[TESTING.md](backend/TESTING.md)**.
+For detailed testing instructions, see **[TESTING.md](Resources/TESTING.md)**.
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## License
-
-This project is part of CMPE 202 coursework.
-
-## Team
-
-- Sonali Lonkar
-- Sofia Silva
-- Shivani Jariwala
-- Alex
 
 ## 🚀 Production Deployment
 
@@ -295,39 +289,6 @@ OPENAI_API_KEY=your-openai-api-key
 SERVER_PORT=8080
 ```
 
-### Quick Deploy
-
-1. **Clone and Setup**:
-   ```bash
-   git clone <repository-url>
-   cd cmpe202-02-team-project-commitstorm/backend
-   cp .env.example .env
-   # Edit .env with your actual credentials
-   ```
-
-2. **Deploy to EC2**:
-   ```bash
-   # Copy files to EC2 instance
-   scp -i your-key.pem -r . ubuntu@your-ec2-instance:/home/ubuntu/app/
-
-   # SSH into EC2 and deploy
-   ssh -i your-key.pem ubuntu@your-ec2-instance
-   cd /home/ubuntu/app
-   chmod +x scripts/deploy.sh
-   ./scripts/deploy.sh
-   ```
-
-3. **Verify Deployment**:
-   ```bash
-   # Check container status
-   docker ps
-
-   # Check application health
-   curl http://localhost:8080/api/health
-
-   # Check ALB health
-   curl http://your-alb-url.amazonaws.com/api/health
-   ```
 
 ### Deployment Scripts
 Added doc on deployment in Resources.
@@ -359,18 +320,8 @@ The application is deployed on AWS using manually configured resources through t
 
 ### Documentation
 
-- **[Production Deployment Guide](backend/PRODUCTION_DEPLOYMENT.md)** - Complete deployment checklist
-- **[Backup & Rollback](backend/BACKUP_ROLLBACK.md)** - Backup procedures and rollback steps
 - **[API Documentation](API_DOCUMENTATION.md)** - Detailed API specifications
 - **[Testing Guide](backend/TESTING.md)** - Comprehensive testing documentation
-
-### Demo Accounts
-
-After running V5 migration:
-- **Admin**: `admin@campusmarket.com` / `demo123`
-- **Sample Users**: `john.doe@university.edu` / `demo123`, `jane.smith@university.edu` / `demo123`
-
-### Testing
 
 #### Postman Collection
 - **Full Collection**: `Campus Marketplace API.postman_collection.json`
@@ -389,43 +340,18 @@ k6 run backend/scripts/load-tests/k6-smoke-test.js
 k6 run --vus 50 --duration 2m backend/scripts/load-tests/k6-load-test.js
 
 # For production testing, set BASE_URL environment variable:
-# BASE_URL=https://your-alb-url.amazonaws.com k6 run backend/scripts/load-tests/k6-smoke-test.js
+# BASE_URL=http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com k6 run backend/scripts/load-tests/k6-smoke-test.js
 ```
 
+## License
 
-### Logs
-```bash
-# Application logs
-docker logs campus_api
+This project is part of CMPE 202 coursework.
 
-# Application logs (follow)
-docker logs campus_api --tail 100 -f
+## Team
 
-# ALB Access Logs (CloudWatch)
-aws logs tail /aws/elasticloadbalancing/campus-marketplace-alb --follow
+- Sonali Lonkar
+- Sofia Silva
+- Shivani Jariwala
+- Alex
 
-# System logs
-journalctl -u docker -f
-```
-
-## 🔧 Maintenance
-
-### Application Updates
-```bash
-# Pull latest changes
-git pull
-
-# Deploy updates
-Follow deployment doc
-```
-
-
-## Support
-
-For questions or issues, please contact the development team or create an issue in the repository.
-
-## 📚 Additional Resources
-
-- **Swagger UI**: http://localhost:8080/swagger-ui.html (local) / http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/swagger-ui.html (production)
-- **Postman Collection**: Import `Campus Marketplace API.postman_collection.json`
-- **Authentication Guide**: [AUTHENTICATION.md](backend/AUTHENTICATION.md)
+## Contribution
