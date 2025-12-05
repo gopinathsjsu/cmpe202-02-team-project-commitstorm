@@ -10,6 +10,8 @@ import Signup from './components/auth/Signup';
 import ListingForm from './components/listingForm';
 import Chat from './components/Chat';
 import ReportModal from './components/ReportModal';
+import EditListingModal from './components/EditListingModal';
+import DeleteListingModal from './components/DeleteListingModal';
 import { setAuthToken, clearAuthToken } from './services/apiClient';
 import { logout as logoutAPI } from './services/authService';
 
@@ -21,6 +23,9 @@ function AppContent() {
   const [chatData, setChatData] = useState(null); // { listingId, recipientId, recipientName, listingTitle }
   const [showProfileModal, setShowProfileModal] = useState(null); // null, 'profile', 'listings', 'messages'
   const [reportData, setReportData] = useState(null); // { listingId, listingTitle }
+  const [editListingId, setEditListingId] = useState(null); // listingId to edit in modal
+  const [deleteListingData, setDeleteListingData] = useState(null); // { listingId, listingTitle }
+  const [listingsRefreshTrigger, setListingsRefreshTrigger] = useState(0); // Trigger to refresh My Listings
 
   // Check for existing auth on app load
   useEffect(() => {
@@ -69,6 +74,49 @@ function AppContent() {
       console.log('Logged out');
       // Redirect to home page
       navigate('/');
+    }
+  };
+
+  const handleEditListing = (listingId) => {
+    console.log('handleEditListing called with:', listingId);
+    if (!listingId) {
+      console.error('No listingId provided to handleEditListing');
+      alert('Error: Listing ID is missing');
+      return;
+    }
+    // Open edit listing modal
+    setEditListingId(listingId);
+  };
+
+  const handleEditSuccess = () => {
+    // Trigger refresh of My Listings modal if it's open
+    setListingsRefreshTrigger(prev => prev + 1);
+    // Also refresh marketplace if we're on that page
+    if (location.pathname === '/marketplace') {
+      window.location.reload();
+    }
+  };
+
+  const handleDeleteListing = (listingId, listingTitle) => {
+    console.log('handleDeleteListing called with:', listingId, listingTitle);
+    if (!listingId) {
+      console.error('No listingId provided to handleDeleteListing');
+      alert('Error: Listing ID is missing');
+      return;
+    }
+    // Open delete confirmation modal
+    setDeleteListingData({
+      listingId: listingId,
+      listingTitle: listingTitle || 'this listing'
+    });
+  };
+
+  const handleDeleteSuccess = () => {
+    // Trigger refresh of My Listings modal if it's open
+    setListingsRefreshTrigger(prev => prev + 1);
+    // Also refresh marketplace if we're on that page
+    if (location.pathname === '/marketplace') {
+      window.location.reload();
     }
   };
 
@@ -122,7 +170,7 @@ function AppContent() {
       
       <Routes>
         <Route index element={<Home />}/>
-        <Route path="marketplace" element={<Marketplace onMessageVendor={setChatData} onReportPost={setReportData}/>}/>
+        <Route path="marketplace" element={<Marketplace onMessageVendor={setChatData} onReportPost={setReportData} onEditListing={handleEditListing} onDeleteListing={handleDeleteListing}/>}/>
         <Route path="create-listing" element={<ListingForm/>}/>
       </Routes>
 
@@ -138,6 +186,9 @@ function AppContent() {
         <MyListingsModal
           user={user}
           onClose={() => setShowProfileModal(null)}
+          onEditListing={handleEditListing}
+          onDeleteListing={handleDeleteListing}
+          refreshTrigger={listingsRefreshTrigger}
         />
       )}
       {showProfileModal === 'messages' && user && (
@@ -173,6 +224,25 @@ function AppContent() {
           listingTitle={reportData.listingTitle}
           reporterId={user.id}
           onClose={() => setReportData(null)}
+        />
+      )}
+
+      {/* Edit Listing Modal */}
+      {editListingId && (
+        <EditListingModal
+          listingId={editListingId}
+          onClose={() => setEditListingId(null)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+
+      {/* Delete Listing Modal */}
+      {deleteListingData && (
+        <DeleteListingModal
+          listingId={deleteListingData.listingId}
+          listingTitle={deleteListingData.listingTitle}
+          onClose={() => setDeleteListingData(null)}
+          onSuccess={handleDeleteSuccess}
         />
       )}
     </div>

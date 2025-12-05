@@ -126,14 +126,18 @@ const ListingFilters = ({
           {/* Price Range */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Price Range (Both required)
+              Price Range
             </label>
             <div className="flex gap-2">
               <input
                 type="number"
                 placeholder="Min Price"
                 value={filters.minPrice || ''}
-                onChange={(e) => handleFilterChange('minPrice', e.target.value ? parseFloat(e.target.value) : '')}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Store as string to allow typing freely, only validate format
+                  handleFilterChange('minPrice', value === '' ? '' : value);
+                }}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 min="0"
                 step="0.01"
@@ -142,17 +146,21 @@ const ListingFilters = ({
                 type="number"
                 placeholder="Max Price"
                 value={filters.maxPrice || ''}
-                onChange={(e) => handleFilterChange('maxPrice', e.target.value ? parseFloat(e.target.value) : '')}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Store as string to allow typing freely, only validate format
+                  handleFilterChange('maxPrice', value === '' ? '' : value);
+                }}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 min="0"
                 step="0.01"
               />
             </div>
             {filters.minPrice && !filters.maxPrice && (
-              <p className="text-xs text-yellow-400 mt-1">Please enter max price</p>
+              <p className="text-xs text-yellow-400 mt-1">Enter max price to filter by range</p>
             )}
             {filters.maxPrice && !filters.minPrice && (
-              <p className="text-xs text-yellow-400 mt-1">Please enter min price</p>
+              <p className="text-xs text-yellow-400 mt-1">Enter min price to filter by range</p>
             )}
           </div>
         </div>

@@ -17,6 +17,8 @@ export type ListingDetailProps = {
     listingId?: string,
     onMessageVendor?: (data: { listingId: string, recipientId: string, recipientName: string, listingTitle: string }) => void;
     onReportPost?: (data: { listingId: string, listingTitle: string }) => void;
+    onEditListing?: (listingId: string) => void;
+    onDeleteListing?: (listingId: string, listingTitle?: string) => void;
 }
 
 function Post( props: ListingDetailProps ) {
@@ -81,6 +83,65 @@ function Post( props: ListingDetailProps ) {
 
     // Use sellerId if available (from API), otherwise fall back to userId
     const vendorId = props?.sellerId || props?.userId;
+
+    // Check if current user owns this listing
+    const checkIfOwnListing = () => {
+        const userData = localStorage.getItem('auth.user');
+        if (!userData) {
+            console.log('No user data found');
+            return false;
+        }
+        if (!props.sellerId) {
+            console.log('No sellerId in props', props);
+            return false;
+        }
+        try {
+            const user = JSON.parse(userData);
+            const userId = String(user.id);
+            const sellerId = String(props.sellerId);
+            const isOwner = userId === sellerId;
+            console.log('Ownership check:', { userId, sellerId, isOwner, listingTitle: props.title });
+            return isOwner;
+        } catch (e) {
+            console.error('Error checking ownership:', e);
+            return false;
+        }
+    };
+
+    const isOwnListing = checkIfOwnListing();
+
+    const handleEdit = () => {
+        console.log('Edit button clicked', { listingId: props?.listingId, hasHandler: !!props?.onEditListing });
+        if (!props?.listingId) {
+            console.error('No listingId provided');
+            alert('Error: Listing ID is missing');
+            return;
+        }
+        if (!props?.onEditListing) {
+            console.error('No onEditListing handler provided');
+            alert('Error: Edit handler is not available');
+            return;
+        }
+        console.log('Calling onEditListing with:', props.listingId);
+        props.onEditListing(String(props.listingId));
+    };
+
+    const handleDelete = () => {
+        console.log('Delete button clicked', { listingId: props?.listingId, hasHandler: !!props?.onDeleteListing });
+        if (!props?.listingId) {
+            console.error('No listingId provided');
+            alert('Error: Listing ID is missing');
+            return;
+        }
+        if (!props?.onDeleteListing) {
+            console.error('No onDeleteListing handler provided');
+            alert('Error: Delete handler is not available');
+            return;
+        }
+        // Call delete handler with listingId and title - it will open the confirmation modal
+        console.log('Opening delete confirmation modal for:', props.listingId);
+        props.onDeleteListing(String(props.listingId), props.title || 'this listing');
+    };
 
     return (
         <div className='container'>
@@ -156,12 +217,42 @@ function Post( props: ListingDetailProps ) {
                 </div>
             </div>
             <div className="button-group">
-                <button className="post-button" onClick={() => vendorId && sendMessageToVendor(vendorId)}>
-                    Message Vendor
-                </button>
-                <button className="post-button" onClick={() => props?.listingId && reportPost(props.listingId)}>
-                    Report Post
-                </button>
+                {isOwnListing ? (
+                    <>
+                        <button 
+                            className="post-button" 
+                            onClick={handleEdit}
+                            type="button"
+                        >
+                            Edit Listing
+                        </button>
+                        <button 
+                            className="post-button" 
+                            onClick={handleDelete} 
+                            style={{ backgroundColor: '#dc2626' }}
+                            type="button"
+                        >
+                            Delete Listing
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <button 
+                            className="post-button" 
+                            onClick={() => vendorId && sendMessageToVendor(vendorId)}
+                            type="button"
+                        >
+                            Message Vendor
+                        </button>
+                        <button 
+                            className="post-button" 
+                            onClick={() => props?.listingId && reportPost(props.listingId)}
+                            type="button"
+                        >
+                            Report Post
+                        </button>
+                    </>
+                )}
             </div>
         </div>
     );

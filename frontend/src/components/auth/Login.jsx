@@ -150,6 +150,7 @@ const Login = ({ onAuthSuccess, onClose }) => {
             name="password"
             value={formData.password}
             onChange={handleChange}
+            autoComplete="current-password"
             className={`w-full h-12 rounded-xl border px-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 text-gray-900 ${
               errors.password ? 'border-red-500' : 'border-gray-300'
             }`}

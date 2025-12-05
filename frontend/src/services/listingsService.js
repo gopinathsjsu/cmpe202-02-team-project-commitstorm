@@ -148,3 +148,37 @@ export const getListingsByPriceRange = async (minPrice, maxPrice) => {
     };
   }
 };
+
+/**
+ * Update an existing listing
+ * @param {string} listingId - UUID of the listing to update
+ * @param {Object} listingData - Updated data for the listing
+ * @returns {Promise<Object>} Updated listing object
+ */
+export const updateListing = async (listingId, listingData) => {
+  try {
+    const response = await apiClient.put(`/api/listings/${listingId}`, listingData);
+    return response.data;
+  } catch (error) {
+    throw {
+      message: error.message || 'Failed to update listing',
+      status: error.status || 500,
+    };
+  }
+};
+
+/**
+ * Delete a listing
+ * @param {string} listingId - UUID of the listing to delete
+ * @returns {Promise<void>}
+ */
+export const deleteListing = async (listingId) => {
+  try {
+    await apiClient.delete(`/api/listings/${listingId}`);
+  } catch (error) {
+    throw {
+      message: error.message || 'Failed to delete listing',
+      status: error.status || 500,
+    };
+  }
+};
