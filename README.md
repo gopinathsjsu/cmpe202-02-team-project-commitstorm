@@ -383,6 +383,11 @@ Contains UI/UX design artifacts:
 - User interface wireframes
 - User experience mockups
 - Design system documentation
+- Added Authentication Page
+- Landing page
+- Chat layout
+- Listing Creation, Viewing
+- Edit/Delete Listing
 
 
 ## License
@@ -423,8 +428,15 @@ This project is part of CMPE 202 coursework.
 - Updated Readme gradually
 
 
-### Shivani Jariwala:
-- Frontend
+### Shivani Vinodkumar Jariwala:
+- Created the initial react app setup
+- Developed authentication part (login/ signup/logout)
+- Added view my listings, edit my listings, delete listings
+- Constructed send and receive messages
+- Added buy and sell features in-chat
+- Fixed bugs on UI
+- Implemented listing component
+- Worked on search and filters
 
 ### Alex Huang:
 - Frontend creation
@@ -436,4 +448,3 @@ This project is part of CMPE 202 coursework.
 - Designed layout for multiple UI components
 - Created Trello board
 - Acted as scrum manager
-- 
