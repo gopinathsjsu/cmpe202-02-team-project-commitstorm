@@ -140,10 +140,7 @@ const Profile = ({ user, onLogout, onLoginClick, onMessageVendor, setUser }) => 
     };
 
     loadMessages();
-    
-    // Poll for new messages every 5 seconds
-    const interval = setInterval(loadMessages, 5000);
-    return () => clearInterval(interval);
+    // Removed polling - messages will load when component mounts or user changes
   }, [user, showMyMessages]);
 
   const handleSaveProfile = async (e) => {

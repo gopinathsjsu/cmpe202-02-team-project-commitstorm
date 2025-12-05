@@ -93,6 +93,7 @@ const mapListingToPostProps = (listing) => {
     title: listing.title || '',
     sellerId: listing.sellerId, // This is the seller's user ID (userId1)
     listingId: listing.id, // This is the actual listing ID from API
+    status: listing.status || 'ACTIVE', // Include status for SOLD check
   };
 };
 

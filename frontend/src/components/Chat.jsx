@@ -4,7 +4,8 @@ import {
   getListingConversation, 
   markMessageAsRead
 } from '../services/messagesService';
-import { getListingById } from '../services/listingsService';
+import { getListingById, updateListingStatus } from '../services/listingsService';
+import { requestToBuy, confirmTransaction, rejectTransaction, getTransactionByListingId } from '../services/transactionService';
 import Loader from './Loader';
 
 const Chat = ({ listingId, recipientId, recipientName, listingTitle, listingPrice, onClose, currentUserId }) => {
@@ -14,21 +15,23 @@ const Chat = ({ listingId, recipientId, recipientName, listingTitle, listingPric
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [listing, setListing] = useState(null);
+  const [transactionId, setTransactionId] = useState(null);
+  const [transactionStatus, setTransactionStatus] = useState(null);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   
-  // Check if there's a purchase request in messages (from buyer to seller)
-  const hasPurchaseRequest = messages.some(msg => 
+  // Check if there's a purchase request (from messages or transaction)
+  const hasPurchaseRequest = transactionId && transactionStatus !== 'COMPLETED' && transactionStatus !== 'CANCELLED' || messages.some(msg => 
     msg.content?.includes('🛒 Purchase request')
   );
   
   // Check if transaction is confirmed (seller confirmed the sale)
-  const isConfirmed = messages.some(msg => 
+  const isConfirmed = transactionStatus === 'COMPLETED' || messages.some(msg => 
     msg.content?.includes('✅ Sale confirmed') || msg.content?.includes('✅ Transaction confirmed')
   );
   
   // Check if request was rejected (seller declined)
-  const isRejected = messages.some(msg => 
+  const isRejected = transactionStatus === 'CANCELLED' || messages.some(msg => 
     msg.content?.includes('❌ Purchase request has been declined') || msg.content?.includes('❌ Rejected')
   );
 
@@ -47,6 +50,60 @@ const Chat = ({ listingId, recipientId, recipientName, listingTitle, listingPric
 
     loadListing();
   }, [listingId]);
+
+  // Load existing transaction for this listing
+  useEffect(() => {
+    if (!listingId) return;
+
+    const loadTransaction = async () => {
+      try {
+        // Try to get transaction for this listing
+        const transaction = await getTransactionByListingId(listingId);
+        if (transaction) {
+          // Handle both single transaction object and array
+          const tx = Array.isArray(transaction) ? transaction[0] : transaction;
+          if (tx && tx.id) {
+            setTransactionId(tx.id);
+            setTransactionStatus(tx.status);
+          }
+        }
+      } catch (err) {
+        console.error('Error loading transaction:', err);
+        // Transaction might not exist yet, which is fine
+      }
+    };
+
+    loadTransaction();
+  }, [listingId]);
+
+  // Reload transaction when messages change (in case a new transaction was created)
+  useEffect(() => {
+    if (!listingId || !messages.length) return;
+    
+    // Check if there's a purchase request message but no transaction loaded
+    const hasPurchaseMessage = messages.some(msg => 
+      msg.content?.includes('🛒 Purchase request')
+    );
+    
+    if (hasPurchaseMessage && !transactionId) {
+      const loadTransaction = async () => {
+        try {
+          const transaction = await getTransactionByListingId(listingId);
+          if (transaction) {
+            const tx = Array.isArray(transaction) ? transaction[0] : transaction;
+            if (tx && tx.id) {
+              setTransactionId(tx.id);
+              setTransactionStatus(tx.status);
+            }
+          }
+        } catch (err) {
+          console.error('Error reloading transaction:', err);
+        }
+      };
+      
+      loadTransaction();
+    }
+  }, [messages, listingId, transactionId]);
   
   // Determine if current user is the seller
   const isSeller = listing?.sellerId === currentUserId;
@@ -65,6 +122,23 @@ const Chat = ({ listingId, recipientId, recipientName, listingTitle, listingPric
         // Handle both array and paginated response
         const messageList = Array.isArray(data) ? data : (data.content || data);
         setMessages(messageList || []);
+        
+        // After loading messages, check if we need to load transaction
+        // (transaction might have been created when buyer sent purchase request)
+        if (messageList && messageList.some(msg => msg.content?.includes('🛒 Purchase request'))) {
+          try {
+            const transaction = await getTransactionByListingId(listingId);
+            if (transaction) {
+              const tx = Array.isArray(transaction) ? transaction[0] : transaction;
+              if (tx && tx.id) {
+                setTransactionId(tx.id);
+                setTransactionStatus(tx.status);
+              }
+            }
+          } catch (txErr) {
+            console.error('Error loading transaction after messages:', txErr);
+          }
+        }
         
         // Don't automatically mark all as read on every load to prevent extra API calls
       } catch (err) {
@@ -122,17 +196,27 @@ const Chat = ({ listingId, recipientId, recipientName, listingTitle, listingPric
     }
   };
 
-  // Transaction handlers - just send messages, no API calls
+  // Transaction handlers - call transaction APIs
   const handleRequestToBuy = async () => {
-    if (!listingId || sending) return;
+    if (!listingId || !currentUserId || sending) return;
     
     setSending(true);
     setError('');
     
     try {
+      // Call transaction API: POST /api/transactions/request-to-buy?listingId={listingId}&buyerId={buyerId}
+      const transaction = await requestToBuy(listingId, currentUserId);
+      
+      // Store transaction ID and status for later use (confirm/reject)
+      if (transaction && transaction.id) {
+        setTransactionId(transaction.id);
+        setTransactionStatus(transaction.status || 'PENDING');
+      }
+      
       const price = listingPrice || listing?.price || 'this item';
       const priceText = typeof price === 'number' ? `$${parseFloat(price).toFixed(2)}` : price;
       
+      // Send message to notify seller
       const sentMessage = await sendMessage({
         listingId: listingId,
         toUserId: recipientId,
@@ -142,8 +226,8 @@ const Chat = ({ listingId, recipientId, recipientName, listingTitle, listingPric
       // Add message to local state immediately
       setMessages(prev => [...prev, sentMessage]);
     } catch (err) {
-      console.error('Error sending purchase request:', err);
-      setError(err.message || 'Failed to send purchase request');
+      console.error('Error requesting to buy:', err);
+      setError(err.message || 'Failed to submit purchase request');
     } finally {
       setSending(false);
     }
@@ -156,7 +240,10 @@ const Chat = ({ listingId, recipientId, recipientName, listingTitle, listingPric
     setError('');
     
     try {
-      // Seller confirms and sends message to buyer (recipientId is the buyer when seller is current user)
+      // Call API: PATCH /api/listings/{id}/status?status=SOLD
+      await updateListingStatus(listingId, 'SOLD');
+      
+      // Send message to notify buyer
       const sentMessage = await sendMessage({
         listingId: listingId,
         toUserId: recipientId,
@@ -165,9 +252,13 @@ const Chat = ({ listingId, recipientId, recipientName, listingTitle, listingPric
       
       // Add message to local state immediately
       setMessages(prev => [...prev, sentMessage]);
+      
+      // Update local state to reflect confirmed status
+      setTransactionStatus('COMPLETED');
     } catch (err) {
-      console.error('Error confirming transaction:', err);
-      setError(err.message || 'Failed to confirm transaction');
+      console.error('Error confirming sale:', err);
+      setError(err.message || 'Failed to confirm sale');
+      alert(err.message || 'Failed to confirm sale. Please try again.');
     } finally {
       setSending(false);
     }
@@ -184,7 +275,38 @@ const Chat = ({ listingId, recipientId, recipientName, listingTitle, listingPric
     setError('');
     
     try {
-      // Seller rejects and sends message to buyer (recipientId is the buyer when seller is current user)
+      // If transactionId is not set, try to load it first
+      let txId = transactionId;
+      if (!txId) {
+        console.log('Transaction ID not found, attempting to load transaction for listing:', listingId);
+        const transaction = await getTransactionByListingId(listingId);
+        if (transaction) {
+          // Handle both single transaction object and array
+          const tx = Array.isArray(transaction) ? transaction[0] : transaction;
+          if (tx && tx.id) {
+            txId = tx.id;
+            setTransactionId(txId);
+            setTransactionStatus(tx.status);
+            console.log('Transaction loaded:', tx);
+          } else {
+            throw new Error('Transaction not found. Please ensure the buyer has submitted a purchase request.');
+          }
+        } else {
+          throw new Error('Transaction not found. Please ensure the buyer has submitted a purchase request.');
+        }
+      }
+      
+      if (!txId) {
+        throw new Error('Transaction ID is required to reject the sale.');
+      }
+      
+      console.log('Rejecting transaction with ID:', txId);
+      
+      // Call API: PATCH /api/transactions/{id}/status=CANCELLED
+      await rejectTransaction(txId);
+      setTransactionStatus('CANCELLED');
+      
+      // Send message to notify buyer
       const sentMessage = await sendMessage({
         listingId: listingId,
         toUserId: recipientId,
@@ -196,6 +318,7 @@ const Chat = ({ listingId, recipientId, recipientName, listingTitle, listingPric
     } catch (err) {
       console.error('Error rejecting transaction:', err);
       setError(err.message || 'Failed to reject transaction');
+      alert(err.message || 'Failed to reject transaction. Please try again.');
     } finally {
       setSending(false);
     }

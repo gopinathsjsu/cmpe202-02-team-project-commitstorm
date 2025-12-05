@@ -21,43 +21,39 @@ export const requestToBuy = async (listingId, buyerId) => {
 };
 
 /**
- * Mark transaction as sold (seller action - accepts purchase request)
+ * Update transaction status
  * @param {string} transactionId - Transaction ID
- * @param {string} sellerId - Seller ID
+ * @param {string} status - Status (COMPLETED, CANCELLED)
  * @returns {Promise<Object>} Updated transaction object
  */
-export const markAsSold = async (transactionId, sellerId) => {
+export const updateTransactionStatus = async (transactionId, status) => {
   try {
-    const response = await apiClient.patch(`/api/transactions/${transactionId}/mark-sold`, null, {
-      params: { sellerId }
-    });
+    const response = await apiClient.patch(`/api/transactions/${transactionId}/status?status=${status}`);
     return response.data;
   } catch (error) {
     throw {
-      message: error.response?.data?.message || error.message || 'Failed to confirm transaction',
+      message: error.response?.data?.message || error.message || 'Failed to update transaction status',
       status: error.response?.status || 500,
     };
   }
 };
 
 /**
- * Reject purchase request (seller action)
+ * Confirm transaction (seller action) - updates transaction to COMPLETED
  * @param {string} transactionId - Transaction ID
- * @param {string} sellerId - Seller ID
  * @returns {Promise<Object>} Updated transaction object
  */
-export const rejectRequest = async (transactionId, sellerId) => {
-  try {
-    const response = await apiClient.patch(`/api/transactions/${transactionId}/reject`, null, {
-      params: { sellerId }
-    });
-    return response.data;
-  } catch (error) {
-    throw {
-      message: error.response?.data?.message || error.message || 'Failed to reject request',
-      status: error.response?.status || 500,
-    };
-  }
+export const confirmTransaction = async (transactionId) => {
+  return await updateTransactionStatus(transactionId, 'COMPLETED');
+};
+
+/**
+ * Reject transaction (seller action) - updates transaction to CANCELLED
+ * @param {string} transactionId - Transaction ID
+ * @returns {Promise<Object>} Updated transaction object
+ */
+export const rejectTransaction = async (transactionId) => {
+  return await updateTransactionStatus(transactionId, 'CANCELLED');
 };
 
 /**

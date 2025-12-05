@@ -59,6 +59,7 @@ const mapListingToPostProps = (listing) => {
     title: listing.title || '',
     sellerId: listing.sellerId,
     listingId: listing.id,
+    status: listing.status || 'ACTIVE', // Include status for SOLD check
   };
 };
 
@@ -178,7 +179,7 @@ export const MyProfileModal = ({ user, onClose, setUser }) => {
 };
 
 // My Listings Modal
-export const MyListingsModal = ({ user, onClose, onEditListing, onDeleteListing, refreshTrigger }) => {
+export const MyListingsModal = ({ user, onClose, onEditListing, onDeleteListing, onMarkAsSold, refreshTrigger }) => {
   const [myListings, setMyListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -249,6 +250,7 @@ export const MyListingsModal = ({ user, onClose, onEditListing, onDeleteListing,
                   {...listing}
                   onEditListing={onEditListing}
                   onDeleteListing={onDeleteListing}
+                  onMarkAsSold={onMarkAsSold}
                 />
               ))}
             </div>
@@ -286,8 +288,7 @@ export const MyMessagesModal = ({ user, onClose, onMessageVendor }) => {
     };
 
     loadMessages();
-    const interval = setInterval(loadMessages, 5000);
-    return () => clearInterval(interval);
+    // Removed polling - messages will load when modal opens or user changes
   }, [user]);
 
   const formatTime = (timestamp) => {

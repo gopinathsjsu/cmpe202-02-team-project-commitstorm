@@ -19,6 +19,8 @@ export type ListingDetailProps = {
     onReportPost?: (data: { listingId: string, listingTitle: string }) => void;
     onEditListing?: (listingId: string) => void;
     onDeleteListing?: (listingId: string, listingTitle?: string) => void;
+    onMarkAsSold?: (listingId: string) => void;
+    status?: string;
 }
 
 function Post( props: ListingDetailProps ) {
@@ -226,6 +228,20 @@ function Post( props: ListingDetailProps ) {
                         >
                             Edit Listing
                         </button>
+                        {props.status !== 'SOLD' && (
+                            <button 
+                                className="post-button" 
+                                onClick={() => {
+                                    if (props?.listingId && props?.onMarkAsSold) {
+                                        props.onMarkAsSold(String(props.listingId));
+                                    }
+                                }}
+                                style={{ backgroundColor: '#16a34a' }}
+                                type="button"
+                            >
+                                Mark as Sold
+                            </button>
+                        )}
                         <button 
                             className="post-button" 
                             onClick={handleDelete} 

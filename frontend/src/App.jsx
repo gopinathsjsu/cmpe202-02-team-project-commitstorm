@@ -14,6 +14,7 @@ import EditListingModal from './components/EditListingModal';
 import DeleteListingModal from './components/DeleteListingModal';
 import { setAuthToken, clearAuthToken } from './services/apiClient';
 import { logout as logoutAPI } from './services/authService';
+import { updateListingStatus } from './services/listingsService';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -120,6 +121,31 @@ function AppContent() {
     }
   };
 
+  const handleMarkAsSold = async (listingId) => {
+    console.log('handleMarkAsSold called with:', listingId);
+    if (!listingId) {
+      console.error('No listingId provided to handleMarkAsSold');
+      alert('Error: Listing ID is missing');
+      return;
+    }
+    try {
+      console.log('Marking listing as sold:', listingId);
+      await updateListingStatus(listingId, 'SOLD');
+      console.log('Listing marked as sold successfully');
+      alert('Listing marked as sold successfully!');
+      
+      // Trigger refresh of My Listings modal if it's open
+      setListingsRefreshTrigger(prev => prev + 1);
+      // Also refresh marketplace if we're on that page
+      if (location.pathname === '/marketplace') {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error marking listing as sold:', error);
+      alert(error.message || 'Failed to mark listing as sold. Please try again.');
+    }
+  };
+
   // Check if we're on home route (public)
   const isHome = location.pathname === '/';
 
@@ -188,6 +214,7 @@ function AppContent() {
           onClose={() => setShowProfileModal(null)}
           onEditListing={handleEditListing}
           onDeleteListing={handleDeleteListing}
+          onMarkAsSold={handleMarkAsSold}
           refreshTrigger={listingsRefreshTrigger}
         />
       )}

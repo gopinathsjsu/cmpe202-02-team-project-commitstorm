@@ -182,3 +182,21 @@ export const deleteListing = async (listingId) => {
     };
   }
 };
+
+/**
+ * Update listing status
+ * @param {string} listingId - UUID of the listing
+ * @param {string} status - Status to set (SOLD, ACTIVE, PENDING, DRAFT)
+ * @returns {Promise<Object>} Updated listing object
+ */
+export const updateListingStatus = async (listingId, status) => {
+  try {
+    const response = await apiClient.patch(`/api/listings/${listingId}/status?status=${status}`);
+    return response.data;
+  } catch (error) {
+    throw {
+      message: error.message || 'Failed to update listing status',
+      status: error.status || 500,
+    };
+  }
+};
