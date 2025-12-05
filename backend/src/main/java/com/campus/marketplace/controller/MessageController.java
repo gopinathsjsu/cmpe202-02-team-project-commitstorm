@@ -332,6 +332,12 @@ public class MessageController {
             
             MessageDTO message = messageService.markMessageAsRead(messageId, userId);
             return ResponseEntity.ok(message);
+        } catch (RuntimeException e) {
+            // Check if it's an access denied error
+            if (e.getMessage() != null && e.getMessage().contains("Access denied")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Error: " + e.getMessage());
+            }
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
