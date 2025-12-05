@@ -202,6 +202,6 @@ public class Listing {
     }
     
     public enum ListingStatus {
-        ACTIVE, SOLD, PENDING, DRAFT
+        ACTIVE, SOLD, PENDING, DRAFT, DISABLED
     }
 }

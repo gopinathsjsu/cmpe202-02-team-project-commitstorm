@@ -1,5 +1,6 @@
 package com.campus.marketplace.controller;
 
+import com.campus.marketplace.dto.ListingDTO;
 import com.campus.marketplace.entity.Category;
 import com.campus.marketplace.entity.Listing;
 import com.campus.marketplace.entity.User;
@@ -12,20 +13,30 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
+@EnableMethodSecurity(prePostEnabled = true)
 public class ListingControllerTest {
     
     @Mock
@@ -62,6 +73,32 @@ public class ListingControllerTest {
         testListing.setCategory(testCategory);
         testListing.setStatus(Listing.ListingStatus.ACTIVE);
         testListing.setCondition(Listing.ItemCondition.GOOD);
+    }
+    
+    private void setAdminSecurityContext() {
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        Authentication auth = new UsernamePasswordAuthenticationToken(
+            "admin@example.com",
+            null,
+            Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"))
+        );
+        context.setAuthentication(auth);
+        SecurityContextHolder.setContext(context);
+    }
+    
+    private void setUserSecurityContext() {
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        Authentication auth = new UsernamePasswordAuthenticationToken(
+            "user@example.com",
+            null,
+            Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+        );
+        context.setAuthentication(auth);
+        SecurityContextHolder.setContext(context);
+    }
+    
+    private void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
     }
     
     @Test
@@ -154,23 +191,92 @@ public class ListingControllerTest {
     
     @Test
     void testUpdateListing() throws Exception {
-        testListing.setTitle("Updated Title");
+        // Create a ListingDTO for the request body
+        ListingDTO updateDTO = new ListingDTO();
+        updateDTO.setTitle("Updated Title");
+        updateDTO.setDescription("Updated Description");
+        updateDTO.setPrice(new BigDecimal("150.00"));
+        updateDTO.setSellerId("seller-123");
+        updateDTO.setCategoryId("category-123");
+        updateDTO.setCondition(Listing.ItemCondition.GOOD);
+        updateDTO.setStatus(Listing.ListingStatus.ACTIVE);
+        
+        // Mock the existing listing
         when(listingService.getListingById("listing-123")).thenReturn(Optional.of(testListing));
         when(listingService.updateListing(any(Listing.class))).thenReturn(testListing);
         
         mockMvc.perform(put("/api/listings/listing-123")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(testListing)))
+            .content(objectMapper.writeValueAsString(updateDTO)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.title").value("Updated Title"));
     }
     
+    // ========== Admin Access Control Tests ==========
+    
     @Test
-    void testDeleteListing() throws Exception {
-        mockMvc.perform(delete("/api/listings/listing-123")
-            .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isNoContent());
-
-        verify(listingService, times(1)).deleteListing("listing-123");
+    void testUpdateListingStatus_AdminAccess() {
+        // Arrange
+        setAdminSecurityContext();
+        testListing.setStatus(Listing.ListingStatus.DISABLED);
+        when(listingService.updateListingStatus("listing-123", Listing.ListingStatus.DISABLED))
+                .thenReturn(testListing);
+        
+        // Act
+        var response = listingController.updateListingStatus("listing-123", Listing.ListingStatus.DISABLED);
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals(Listing.ListingStatus.DISABLED, response.getBody().getStatus());
+        verify(listingService).updateListingStatus("listing-123", Listing.ListingStatus.DISABLED);
+        
+        clearSecurityContext();
+    }
+    
+    @Test
+    void testUpdateListingStatus_RegularUserAccessDenied() {
+        // Arrange
+        setUserSecurityContext();
+        
+        // Act & Assert
+        assertThrows(AccessDeniedException.class, () -> {
+            listingController.updateListingStatus("listing-123", Listing.ListingStatus.DISABLED);
+        });
+        
+        verify(listingService, never()).updateListingStatus(anyString(), any());
+        clearSecurityContext();
+    }
+    
+    @Test
+    void testDeleteListing_AdminAccess() {
+        // Arrange
+        setAdminSecurityContext();
+        doNothing().when(listingService).deleteListing("listing-123");
+        
+        // Act
+        var response = listingController.deleteListing("listing-123");
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(204, response.getStatusCode().value());
+        verify(listingService).deleteListing("listing-123");
+        
+        clearSecurityContext();
+    }
+    
+    @Test
+    void testDeleteListing_RegularUserAccessDenied() {
+        // Arrange
+        setUserSecurityContext();
+        
+        // Act & Assert
+        assertThrows(AccessDeniedException.class, () -> {
+            listingController.deleteListing("listing-123");
+        });
+        
+        verify(listingService, never()).deleteListing(anyString());
+        clearSecurityContext();
     }
 }

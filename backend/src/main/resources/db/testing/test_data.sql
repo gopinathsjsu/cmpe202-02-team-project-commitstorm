@@ -3,13 +3,13 @@
 -- Will then verify API w/ shell commands 
 /*
     # Test Users API
-    curl -s http://localhost:8080/api/users
+    curl -s http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com//api/users
 
     # Test Categories API  
-    curl -s http://localhost:8080/api/categories
+    curl -s http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com//api/categories
 
     # Test Listings API
-    curl -s http://localhost:8080/api/listings
+    curl -s http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com//api/listings
 */
 
 USE campusMarket;
