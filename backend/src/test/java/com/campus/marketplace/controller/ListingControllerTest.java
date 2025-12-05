@@ -5,6 +5,8 @@ import com.campus.marketplace.entity.Category;
 import com.campus.marketplace.entity.Listing;
 import com.campus.marketplace.entity.User;
 import com.campus.marketplace.service.ListingService;
+import com.campus.marketplace.service.UserService;
+import com.campus.marketplace.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,7 +15,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -41,6 +42,12 @@ public class ListingControllerTest {
     
     @Mock
     private ListingService listingService;
+    
+    @Mock
+    private JwtUtil jwtUtil;
+    
+    @Mock
+    private UserService userService;
     
     @InjectMocks
     private ListingController listingController;
@@ -90,6 +97,17 @@ public class ListingControllerTest {
         SecurityContext context = SecurityContextHolder.createEmptyContext();
         Authentication auth = new UsernamePasswordAuthenticationToken(
             "user@example.com",
+            null,
+            Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+        );
+        context.setAuthentication(auth);
+        SecurityContextHolder.setContext(context);
+    }
+    
+    private void setSellerSecurityContext() {
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        Authentication auth = new UsernamePasswordAuthenticationToken(
+            "seller@example.com",
             null,
             Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
         );
@@ -219,11 +237,18 @@ public class ListingControllerTest {
         // Arrange
         setAdminSecurityContext();
         testListing.setStatus(Listing.ListingStatus.DISABLED);
+        when(listingService.getListingById("listing-123")).thenReturn(Optional.of(testListing));
         when(listingService.updateListingStatus("listing-123", Listing.ListingStatus.DISABLED))
                 .thenReturn(testListing);
         
+        User adminUser = new User();
+        adminUser.setId("admin-123");
+        adminUser.setEmail("admin@example.com");
+        when(jwtUtil.extractUsername("test-token")).thenReturn("admin@example.com");
+        when(userService.getUserByEmail("admin@example.com")).thenReturn(Optional.of(adminUser));
+        
         // Act
-        var response = listingController.updateListingStatus("listing-123", Listing.ListingStatus.DISABLED);
+        var response = listingController.updateListingStatus("listing-123", Listing.ListingStatus.DISABLED, "Bearer test-token");
         
         // Assert
         assertNotNull(response);
@@ -236,16 +261,70 @@ public class ListingControllerTest {
     }
     
     @Test
+    void testUpdateListingStatus_SellerOwnListing() {
+        // Arrange
+        setSellerSecurityContext();
+        testListing.setStatus(Listing.ListingStatus.SOLD);
+        when(listingService.getListingById("listing-123")).thenReturn(Optional.of(testListing));
+        when(listingService.updateListingStatus("listing-123", Listing.ListingStatus.SOLD))
+                .thenReturn(testListing);
+        
+        when(jwtUtil.extractUsername("test-token")).thenReturn("seller@example.com");
+        when(userService.getUserByEmail("seller@example.com")).thenReturn(Optional.of(testSeller));
+        
+        // Act
+        var response = listingController.updateListingStatus("listing-123", Listing.ListingStatus.SOLD, "Bearer test-token");
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCode().value());
+        assertNotNull(response.getBody());
+        assertEquals(Listing.ListingStatus.SOLD, response.getBody().getStatus());
+        verify(listingService).updateListingStatus("listing-123", Listing.ListingStatus.SOLD);
+        
+        clearSecurityContext();
+    }
+    
+    @Test
+    void testUpdateListingStatus_SellerCannotSetDisabled() {
+        // Arrange
+        setSellerSecurityContext();
+        when(listingService.getListingById("listing-123")).thenReturn(Optional.of(testListing));
+        
+        when(jwtUtil.extractUsername("test-token")).thenReturn("seller@example.com");
+        when(userService.getUserByEmail("seller@example.com")).thenReturn(Optional.of(testSeller));
+        
+        // Act
+        var response = listingController.updateListingStatus("listing-123", Listing.ListingStatus.DISABLED, "Bearer test-token");
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(403, response.getStatusCode().value());
+        verify(listingService, never()).updateListingStatus(anyString(), any());
+        
+        clearSecurityContext();
+    }
+    
+    @Test
     void testUpdateListingStatus_RegularUserAccessDenied() {
         // Arrange
         setUserSecurityContext();
+        when(listingService.getListingById("listing-123")).thenReturn(Optional.of(testListing));
         
-        // Act & Assert
-        assertThrows(AccessDeniedException.class, () -> {
-            listingController.updateListingStatus("listing-123", Listing.ListingStatus.DISABLED);
-        });
+        User otherUser = new User();
+        otherUser.setId("other-123");
+        otherUser.setEmail("user@example.com");
+        when(jwtUtil.extractUsername("test-token")).thenReturn("user@example.com");
+        when(userService.getUserByEmail("user@example.com")).thenReturn(Optional.of(otherUser));
         
+        // Act
+        var response = listingController.updateListingStatus("listing-123", Listing.ListingStatus.SOLD, "Bearer test-token");
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(403, response.getStatusCode().value());
         verify(listingService, never()).updateListingStatus(anyString(), any());
+        
         clearSecurityContext();
     }
     
@@ -253,10 +332,38 @@ public class ListingControllerTest {
     void testDeleteListing_AdminAccess() {
         // Arrange
         setAdminSecurityContext();
+        when(listingService.getListingById("listing-123")).thenReturn(Optional.of(testListing));
         doNothing().when(listingService).deleteListing("listing-123");
         
+        User adminUser = new User();
+        adminUser.setId("admin-123");
+        adminUser.setEmail("admin@example.com");
+        when(jwtUtil.extractUsername("test-token")).thenReturn("admin@example.com");
+        when(userService.getUserByEmail("admin@example.com")).thenReturn(Optional.of(adminUser));
+        
         // Act
-        var response = listingController.deleteListing("listing-123");
+        var response = listingController.deleteListing("listing-123", "Bearer test-token");
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(204, response.getStatusCode().value());
+        verify(listingService).deleteListing("listing-123");
+        
+        clearSecurityContext();
+    }
+    
+    @Test
+    void testDeleteListing_SellerOwnListing() {
+        // Arrange
+        setSellerSecurityContext();
+        when(listingService.getListingById("listing-123")).thenReturn(Optional.of(testListing));
+        doNothing().when(listingService).deleteListing("listing-123");
+        
+        when(jwtUtil.extractUsername("test-token")).thenReturn("seller@example.com");
+        when(userService.getUserByEmail("seller@example.com")).thenReturn(Optional.of(testSeller));
+        
+        // Act
+        var response = listingController.deleteListing("listing-123", "Bearer test-token");
         
         // Assert
         assertNotNull(response);
@@ -270,13 +377,22 @@ public class ListingControllerTest {
     void testDeleteListing_RegularUserAccessDenied() {
         // Arrange
         setUserSecurityContext();
+        when(listingService.getListingById("listing-123")).thenReturn(Optional.of(testListing));
         
-        // Act & Assert
-        assertThrows(AccessDeniedException.class, () -> {
-            listingController.deleteListing("listing-123");
-        });
+        User otherUser = new User();
+        otherUser.setId("other-123");
+        otherUser.setEmail("user@example.com");
+        when(jwtUtil.extractUsername("test-token")).thenReturn("user@example.com");
+        when(userService.getUserByEmail("user@example.com")).thenReturn(Optional.of(otherUser));
         
+        // Act
+        var response = listingController.deleteListing("listing-123", "Bearer test-token");
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(403, response.getStatusCode().value());
         verify(listingService, never()).deleteListing(anyString());
+        
         clearSecurityContext();
     }
 }
