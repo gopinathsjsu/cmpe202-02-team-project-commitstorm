@@ -1,21 +1,23 @@
 import { useEffect, useState } from "react";
-import Post from './post';
 import type { ListingDetailProps } from "./post";
-import { getListingById } from "../services/listingsService";
-import { getUserById, updateUserStatus } from "../services/userService";
+import { getListingById, updateListingStatusById } from "../services/listingsService";
+import { getUserById} from "../services/userService";
 import { assignModerator, updateReportStatus } from "../services/reportsService";
 
 
-function Report(props: {userId: string, reporterId: string, postId: string, reportId: string}) {
+function Report(props: {userId: string, reporterId: string, postId: string, reportId: string, reason: string, loadReports: any}) {
   const [post, setPost] = useState<ListingDetailProps | null>(null);
+  const [imgUrl, setImgUrl] = useState('');
   const [reportedId, setReportedId] = useState('');
   const [reporterName, setReporterName] = useState('');
+  const [reportReason, setReportReason] = useState('')
 
   async function fetch () {
     try{
       const data = await getListingById(props.postId);
       setPost(data as ListingDetailProps);
-      setReportedId(post? post.userId: '');
+      setImgUrl(JSON.parse(data.images))
+      setReportedId(post? post.userId : '');
       const response = await getUserById(props.reporterId);
       const name = response.name;
       setReporterName(name);
@@ -54,38 +56,24 @@ function Report(props: {userId: string, reporterId: string, postId: string, repo
   },[props]);
 
 
-  const handleBan = async () => {
+  const handleDisable = async () => {
     assign();
     try{
-      const response = await updateUserStatus(reportedId, 'BANNED')
+      const response = await updateListingStatusById(props.postId, 'DISABLED')
       if (response.status == 200){
         closeReport("ACTIONED");
-        console.log("User banned");
+        console.log("Post Disabled");
         fetch();
       }
       else{
-        console.log("Failed to ban "+ reportedId)
+        console.log("Failed to disable "+ props.postId)
       }
     } catch (e){
-      console.log("Error banning: "+ e);
+      console.log("Error disabling: "+ e);
+    } finally{
+      props.loadReports()
     }
-  };
-
-  const handleSuspend = async () => {
-    assign();
-    try{
-      const response = await updateUserStatus(reportedId, 'SUSPENDED')
-      if (response.status == 200){
-        closeReport("ACTIONED");
-        console.log("User suspended");
-        fetch();
-      }
-      else{
-        console.log("Failed to ban "+ reportedId)
-      }
-    } catch (e){
-      console.log("Error banning: "+ e);
-    }
+    
   };
 
   const handleDeny = async () => {
@@ -100,7 +88,7 @@ function Report(props: {userId: string, reporterId: string, postId: string, repo
         <strong>Reporter:</strong> {reporterName}
       </div>
       <div style={{ marginBottom: '10px', color: 'black' }}>
-       <strong>Image:</strong> <img src={post?.imageUrl} alt="Post" style={{ maxWidth: '100px', borderRadius: '10px', marginBottom: '10px' }}/>
+       <strong>Image:</strong> <img src={imgUrl} alt="Post" style={{ maxWidth: '100px', borderRadius: '10px', marginBottom: '10px' }}/>
       </div>
       <div style={{ marginBottom: '10px', color: 'black' }}>
         <strong>Description:</strong> {post?.description}
@@ -112,11 +100,11 @@ function Report(props: {userId: string, reporterId: string, postId: string, repo
       <div style={{ marginBottom: '10px', color: 'black' }}>
         <strong>Price:</strong> ${post?.price}
       </div>
-      <button onClick={handleSuspend} style={{ margin: '5px', padding: '10px', backgroundColor: 'orange', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-        Suspend
-      </button>
-      <button onClick={handleBan} style={{ margin: '5px', padding: '10px', backgroundColor: 'red', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-        Ban
+      <div style={{ marginBottom: '10px', color: 'black' }}>
+        <strong>Reason:</strong> {props.reason}
+      </div>
+      <button onClick={handleDisable} style={{ margin: '5px', padding: '10px', backgroundColor: 'orange', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
+        Disable Post
       </button>
       <button onClick={handleDeny} style={{ margin: '5px', padding: '10px', backgroundColor: 'gray', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
         Deny

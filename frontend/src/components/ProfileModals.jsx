@@ -445,7 +445,7 @@ export const ManageReportsModal = ({user, onClose}) => {
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {reports.map((listing) => (
-                <Report key={listing.id} userId={user.id} reporterId={listing.reporterId} postId={listing.targetId} reportId={listing.id} reason={listing.reason}/>
+                <Report key={listing.id} userId={user.id} reporterId={listing.reporterId} postId={listing.targetId} reportId={listing.id} reason={listing.reason} loadReports={loadReports}/>
               ))}
             </div>
           )}

@@ -82,13 +82,13 @@ const Header = ({ user, isHome, onLoginClick, onSignupClick, onLogout, onMyProfi
             {/* Navigation Links */}
             <div className="hidden md:block">
               <div className="flex items-center space-x-8">
-                <a href="#" className="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
+                <a href="/marketplace" className="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
                   Browse
                 </a>
                 <a href="/create-listing" className="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
                   Sell
                 </a>
-                <a href="#" className="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
+                <a href="/" className="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
                   About
                 </a>
               </div>
