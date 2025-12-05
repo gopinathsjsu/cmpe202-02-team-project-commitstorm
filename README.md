@@ -108,12 +108,12 @@ The application uses the following main entities:
 ## UML Diagrams
 
 ### Deployment Diagram
-![Deployment Diagram](Resources/Deployment_Diagram.png)
+![Deployment Diagram](Resources/Diagrams/Deployment_Diagram.png)
 
 *Shows the overall system architecture including AWS infrastructure components, Docker containers, and external service integrations.*
 
 ### Component Diagram
-![Component Diagram](Resources/Component_Diagram.png)
+![Component Diagram](Resources/Diagrams/Component_Diagram.png)
 
 *Displays the high-level software components and their interactions, showing how different modules communicate within the system.*
 
@@ -318,11 +318,6 @@ The application is deployed on AWS using manually configured resources through t
 - **ALB Target Health**: Configured in target group
 
 
-### Documentation
-
-- **[API Documentation](API_DOCUMENTATION.md)** - Detailed API specifications
-- **[Testing Guide](backend/TESTING.md)** - Comprehensive testing documentation
-
 #### Postman Collection
 - **Full Collection**: `Campus Marketplace API.postman_collection.json`
 - **Smoke Tests**: `backend/postman/Smoke_Test_Collection.json`
@@ -343,6 +338,52 @@ k6 run --vus 50 --duration 2m backend/scripts/load-tests/k6-load-test.js
 # BASE_URL=http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com k6 run backend/scripts/load-tests/k6-smoke-test.js
 ```
 
+## Resources
+
+The `Resources/` folder contains all project documentation, diagrams, testing materials, and development artifacts:
+
+### Deployment/
+Contains AWS infrastructure setup documentation, health check screenshots, and deployment instructions for EC2, RDS, ALB, and security groups.
+
+### Diagrams/
+Contains UML diagrams including:
+- Deployment diagrams showing AWS architecture
+- Class diagrams illustrating application structure
+- Component diagrams showing system interactions
+
+### docs/
+Contains comprehensive project documentation including:
+- API documentation
+- Authentication guides
+- Testing procedures
+- Deployment guides
+
+### Postman/
+Contains Postman collections for API testing:
+- Complete API test suites
+- Smoke test collections
+- Environment configurations
+
+### Scrum/
+Contains project management artifacts:
+- Project journal with all scrum meeting records
+- Burndown chart tracking sprint progress
+- Trello board details and task management
+- XP core values followed throughout the project
+
+### TestResults/
+Contains screenshots and evidence of test executions:
+- Unit test results
+- Integration test results
+- Load testing performance metrics
+- Test coverage reports
+
+### Wireframes/
+Contains UI/UX design artifacts:
+- User interface wireframes
+- User experience mockups
+- Design system documentation
+
 ## License
 
 This project is part of CMPE 202 coursework.
@@ -352,6 +393,37 @@ This project is part of CMPE 202 coursework.
 - Sonali Lonkar
 - Sofia Silva
 - Shivani Jariwala
-- Alex
+- Alex Huang
 
 ## Contribution
+
+### Sonali Lonkar:
+- Set up the basic project structure
+- Added APIs for Listings, Auth and Login, Transactions, Reports, Reviews
+- Created APIs postman collection and shared with team
+- Added Image handling and s3 setup
+- Added messages on event updates
+- Added Follow seller endpoint
+- Added unit, integration and load tests
+- Added helper docs for auth, testing, API, deployment guides
+- Deployed the backend with docker, to AWS to EC2, security groups, target groups, load balancers etc
+- Prepared the deployment and class diagram
+- Updated Readme file gradually as we added APIs
+
+### Sofia Silva:
+- For this project I worked on establishing the Database schema and AWS RDS
+- Also worked on testing the API's Sonali created
+- Implemented the Messaging APIs, Wishlist API
+- Implemented Chabot Search Functionality
+- Added Admin Control
+- Implemented some unit tests for backend
+- Worked on S3
+- Fixed bugs for S3, Report, Listings, and Messages
+- Updated Readme gradually
+
+
+### Shivani Jariwala:
+- Frontend
+
+### Alex Huang:
+- Frontend
