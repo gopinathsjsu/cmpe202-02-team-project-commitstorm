@@ -35,16 +35,12 @@ A comprehensive campus marketplace application built with Spring Boot that allow
 
 ### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+git clone https://github.com/gopinathsjsu/cmpe202-02-team-project-commitstorm.git
 cd cmpe202-02-team-project-commitstorm
 ```
 
 ### 2. Database Setup
-The application is configured to use AWS RDS MySQL database:
-- **Host**: commitstorm.c3k8w4gacaeh.us-west-2.rds.amazonaws.com
-- **Database**: campusMarket
-- **Username**: admin
-- **Password**: commitstorm
+The application is configured to use AWS RDS MySQL database.
 
 The database connection is already configured in `backend/src/main/resources/application.yml`. No additional setup is required.
 
@@ -75,7 +71,7 @@ Once the application is running, you can access:
 
 - **Swagger UI**: http://localhost:8080/swagger-ui.html (local) / http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/swagger-ui.html (production)
 - **API Docs**: http://localhost:8080/api-docs (local) / http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/api-docs (production)
-- **Health Check**: http://localhost:8080/health (local) / http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/health (production)
+- **Health Check**: http://localhost:8080/health (local) / http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/api/health (production)
 
 ## API Endpoints
 
@@ -108,13 +104,6 @@ The application uses the following main entities:
 - `reports` - Content and user reports
 - `transactions` - Purchase transactions
 - `reviews` - Product and seller reviews
-
-## Sample Data
-
-The application automatically initializes with sample data:
-- Admin user: `admin@campusmarket.com`
-- Sample users: `john.doe@university.edu`, `jane.smith@university.edu`
-- Predefined categories: Electronics, Books, Clothing, Furniture, etc.
 
 ## Configuration
 
@@ -153,247 +142,41 @@ backend/
 
 ## Testing
 
-The application includes a comprehensive test suite with unit tests, integration tests, and security tests.
+The application includes comprehensive test coverage with 33 test files across unit, integration, and security tests.
 
-### Test Prerequisites
-
-Before running tests, ensure you have:
-- **Java 17** or higher
-- **Maven 3.6** or higher
-- **Docker** (required for Testcontainers integration tests)
-  - Testcontainers uses Docker to spin up MySQL containers for integration tests
-  - Make sure Docker is running before executing tests
+### Prerequisites
+- Java 17+, Maven 3.6+, Docker (for integration tests)
 
 ### Running Tests
 
-#### Run All Tests
 ```bash
 cd backend
+
+# Run all tests
 mvn test
 
-# For clean output (less verbose):
-mvn test -q
-```
-
-#### Run Specific Test Class
-```bash
-# Integration tests
-mvn test -Dtest=AuthControllerIntegrationTest
-mvn test -Dtest=TransactionControllerIntegrationTest
-mvn test -Dtest=MessageControllerIntegrationTest
-
-# Unit tests
-mvn test -Dtest=AuthServiceTest
-mvn test -Dtest=TransactionServiceTest
-mvn test -Dtest=MessageServiceTest
-
-# Security tests
-mvn test -Dtest=SecurityTest
-```
-
-#### Run Tests by Package
-```bash
-# All integration tests
-mvn test -Dtest="com.campus.marketplace.integration.*"
-
-# All service unit tests
-mvn test -Dtest="com.campus.marketplace.service.*Test"
-
-# All security tests
-mvn test -Dtest="com.campus.marketplace.security.*"
-```
-
-#### Run Tests with Coverage
-```bash
-# Generate test coverage report (requires jacoco plugin)
+# Run with coverage report
 mvn test jacoco:report
 # View report at: backend/target/site/jacoco/index.html
+
+# Skip integration tests (faster)
+mvn test -Dtest="!*IntegrationTest*"
 ```
 
 ### Test Structure
+- **Integration Tests** (13 files): Full API testing with Testcontainers MySQL
+- **Controller Tests** (12 files): REST endpoint validation
+- **Service Tests** (4 files): Business logic unit tests
+- **Config Tests** (2 files): Configuration validation
+- **Exception Tests** (1 file): Error handling
+- **Util Tests** (1 file): Utility functions
 
-The test suite is organized as follows:
-
-```
-backend/src/test/java/com/campus/marketplace/
-├── integration/              # Integration tests (use Testcontainers)
-│   ├── IntegrationTestBase.java
-│   ├── AuthControllerIntegrationTest.java
-│   ├── TransactionControllerIntegrationTest.java
-│   ├── MessageControllerIntegrationTest.java
-│   ├── ReviewControllerIntegrationTest.java
-│   ├── ListingControllerIntegrationTest.java
-│   ├── ListingIntegrationTest.java
-│   ├── TransactionIntegrationTest.java
-│   └── WishlistIntegrationTest.java
-├── service/                 # Service unit tests (use Mockito)
-│   ├── AuthServiceTest.java
-│   ├── TransactionServiceTest.java
-│   └── MessageServiceTest.java
-└── security/                # Security and authorization tests
-    └── SecurityTest.java
-```
-
-### Test Types
-
-#### 1. Integration Tests
-- **Framework**: JUnit 5 + Testcontainers + MockMvc
-- **Database**: Uses Testcontainers to spin up MySQL 8.0 containers
-- **Scope**: Tests full request/response cycle through controllers
-- **Location**: `backend/src/test/java/com/campus/marketplace/integration/`
-
-**Key Features:**
-- Tests run against real MySQL database in Docker containers
-- Database is automatically created and cleaned up per test
-- Tests verify complete transaction flows including automatic message sending
-- All database operations are transactional and rolled back after each test
-
-**Example:**
-```java
-@AutoConfigureMockMvc
-@Transactional
-public class AuthControllerIntegrationTest extends IntegrationTestBase {
-    // Tests authentication endpoints with real database
-}
-```
-
-#### 2. Unit Tests
-- **Framework**: JUnit 5 + Mockito
-- **Scope**: Tests individual service methods in isolation
-- **Location**: `backend/src/test/java/com/campus/marketplace/service/`
-
-**Key Features:**
-- Uses mocks to isolate service logic
-- Fast execution (no database required)
-- Tests business logic and error handling
-
-**Example:**
-```java
-@ExtendWith(MockitoExtension.class)
-class AuthServiceTest {
-    @Mock
-    private UserRepository userRepository;
-    
-    @InjectMocks
-    private AuthService authService;
-    // Tests service methods with mocked dependencies
-}
-```
-
-#### 3. Security Tests
-- **Framework**: JUnit 5 + Testcontainers + MockMvc
-- **Scope**: Tests JWT authentication, authorization, and role-based access
-- **Location**: `backend/src/test/java/com/campus/marketplace/security/`
-
-**Key Features:**
-- Tests public vs protected endpoints
-- Validates JWT token handling
-- Tests role-based access control
-- Verifies inactive user restrictions
-
-### Test Coverage
-
-The test suite covers:
-
-✅ **Controllers** (Integration Tests):
-- AuthController (register, login, logout, current user)
-- TransactionController (request-to-buy, mark-sold, reject)
-- MessageController (send, get, unread messages, mark as read)
-- ReviewController (create, get reviews)
-- ListingController (CRUD, search, filters)
-
-✅ **Services** (Unit Tests):
-- AuthService (authentication, registration)
-- TransactionService (transaction flow, message automation)
-- MessageService (messaging operations)
-
-✅ **Security**:
-- JWT authentication and validation
-- Authorization checks
-- Role-based access control
-- Inactive user handling
-
-✅ **Business Logic**:
-- Transaction flow (request → accept/reject)
-- Automatic message sending for transactions and reviews
-- Listing status transitions
-- Review creation and validation
-
-### Troubleshooting Tests
-
-#### Docker Not Running
-If you see errors like "Could not find a valid Docker environment":
-```bash
-# Start Docker Desktop or Docker daemon
-# On macOS:
-open -a Docker
-
-# On Linux:
-sudo systemctl start docker
-```
-
-#### Testcontainers Connection Issues
-If tests fail with connection errors:
-```bash
-# Verify Docker is accessible
-docker ps
-
-# Check Testcontainers configuration
-# Tests use MySQL 8.0 container with reuse enabled
-```
-
-#### Port Conflicts
-If you see port binding errors:
-```bash
-# Tests use random ports, but if issues persist:
-# Check for running MySQL instances
-docker ps | grep mysql
-
-# Stop conflicting containers
-docker stop <container-id>
-```
-
-#### Database Migration Issues
-If Flyway migrations fail in tests:
-```bash
-# Tests automatically run migrations
-# If issues occur, check:
-# 1. Flyway is enabled in test configuration
-# 2. Migration files are in src/main/resources/db/migration/
-```
-
-### Continuous Integration
-
-Tests are designed to run in CI/CD pipelines:
-
-```yaml
-# Example GitHub Actions workflow
-- name: Run Tests
-  run: |
-    cd backend
-    mvn test
-```
-
-**Requirements for CI:**
-- Docker must be available in CI environment
-- Testcontainers will automatically pull MySQL image if needed
-- Tests are isolated and can run in parallel
-
-### Manual API Testing
-
-For manual API testing, you can also use:
-- **Swagger UI**: http://localhost:8080/swagger-ui.html (local) / http://alb-cmpmarket-public-1403545222.us-west-2.elb.amazonaws.com/swagger-ui.html (production)
+### Manual Testing
 - **Postman Collection**: `Campus Marketplace API.postman_collection.json`
-- **cURL commands**: See API_DOCUMENTATION.md
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
+- **Load Tests**: `backend/scripts/load-tests/k6-*.js`
 
-### Detailed Testing Documentation
-
-For comprehensive testing instructions, see **[TESTING.md](backend/TESTING.md)** which includes:
-- Detailed setup instructions
-- Test structure explanation
-- Writing new tests guide
-- Troubleshooting common issues
-- CI/CD integration examples
+For detailed testing instructions, see **[TESTING.md](backend/TESTING.md)**.
 
 ## Contributing
 
@@ -420,8 +203,8 @@ This project is part of CMPE 202 coursework.
 
 ```
 ┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
-│   Internet      │────▶│  Application Load    │────▶│   Target Group   │
-│   Users         │     │  Balancer (ALB)      │     │   (Port 8080)    │
+│   Internet      │────▶│  Application Load    │────▶│   Target Group  │
+│   Users         │     │  Balancer (ALB)      │     │   (Port 8080)   │
 └─────────────────┘     └──────────────────────┘     └─────────────────┘
                                 │                                 │
                                 │                                 ▼
@@ -429,20 +212,20 @@ This project is part of CMPE 202 coursework.
                                 │                       │   EC2 Instance  │
                                 │                       │   (Docker)      │
                                 ▼                       │                 │
-                      ┌──────────────────────┐         │  ┌────────────┐ │
-                      │   Security Groups    │         │  │ Spring Boot │ │
-                      │                      │         │  │   App       │ │
-                      │ • ALB Security Group │         │  │ (Port 8080) │ │
-                      │   - Inbound: 80,443 │         │  └────────────┘ │
-                      │   - Outbound: All    │         └─────────────────┘
+                      ┌──────────────────────┐          │  ┌────────────┐ │
+                      │   Security Groups    │          │  │ Spring Boot│ │
+                      │                      │          │  │   App      │ │
+                      │ • ALB Security Group │          │  │ (Port 8080)│ │
+                      │   - Inbound: 80,443  │          │  └────────────┘ │
+                      │   - Outbound: All    │          └─────────────────┘
                       │                      │
                       │ • EC2 Security Group │                   │
-                      │   - Inbound: 8080   │                   ▼
+                      │   - Inbound: 8080    │                   ▼
                       │     (from ALB only)  │         ┌─────────────────┐
                       │   - Outbound: All    │         │   AWS RDS       │
                       └──────────────────────┘         │   MySQL 8.0     │
-                                                      │   Database      │
-                                                      └─────────────────┘
+                                                       │   Database      │
+                                                       └─────────────────┘
 ```
 
 ### Infrastructure Components
@@ -489,14 +272,13 @@ This project is part of CMPE 202 coursework.
 - RDS MySQL database created
 - ALB configured with target groups
 - Security groups properly configured
-- Domain name (optional, for HTTPS)
 
 #### Environment Variables
 Create a `.env` file in the `backend/` directory:
 
 ```bash
 # Database Configuration
-SPRING_DATASOURCE_URL=jdbc:mysql://your-rds-endpoint.rds.amazonaws.com:3306/campusMarket?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
+SPRING_DATASOURCE_URL=your-db-url
 SPRING_DATASOURCE_USERNAME=your-db-username
 SPRING_DATASOURCE_PASSWORD=your-db-password
 
@@ -548,67 +330,7 @@ SERVER_PORT=8080
    ```
 
 ### Deployment Scripts
-
-#### Docker-based Deployment Script
-Create `backend/scripts/deploy.sh`:
-
-```bash
-#!/bin/bash
-set -e
-
-echo "🚀 Starting Campus Marketplace Deployment..."
-
-# Load environment variables
-if [ -f .env ]; then
-    export $(cat .env | xargs)
-fi
-
-# Stop existing container
-echo "🛑 Stopping existing containers..."
-docker stop campus_api || true
-docker rm campus_api || true
-
-# Pull latest image (if using registry)
-# docker pull your-registry/campus-api:latest
-
-# Build application
-echo "🔨 Building application..."
-./mvnw clean package -DskipTests
-
-# Build Docker image
-echo "🐳 Building Docker image..."
-docker build -t campus-api:latest .
-
-# Run new container
-echo "🚀 Starting new container..."
-docker run -d \
-  --name campus_api \
-  --restart unless-stopped \
-  -p 8080:8080 \
-  -e SPRING_DATASOURCE_URL="$SPRING_DATASOURCE_URL" \
-  -e SPRING_DATASOURCE_USERNAME="$SPRING_DATASOURCE_USERNAME" \
-  -e SPRING_DATASOURCE_PASSWORD="$SPRING_DATASOURCE_PASSWORD" \
-  -e AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID" \
-  -e AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY" \
-  -e AWS_S3_BUCKET_NAME="$AWS_S3_BUCKET_NAME" \
-  -e AWS_REGION="$AWS_REGION" \
-  -e OPENAI_API_KEY="$OPENAI_API_KEY" \
-  campus-api:latest
-
-# Wait for health check
-echo "⏳ Waiting for application to start..."
-sleep 30
-
-# Health check
-if curl -f http://localhost:8080/api/health > /dev/null; then
-    echo "✅ Deployment successful!"
-    echo "📊 Application is running at: http://localhost:8080"
-else
-    echo "❌ Health check failed!"
-    docker logs campus_api
-    exit 1
-fi
-```
+Added doc on deployment in Resources.
 
 #### AWS Cloud Infrastructure (Manual Console Deployment)
 The application is deployed on AWS using manually configured resources through the AWS Management Console:
@@ -634,79 +356,10 @@ The application is deployed on AWS using manually configured resources through t
 - **Database Connectivity**: Automatic in health check
 - **ALB Target Health**: Configured in target group
 
-#### Logs
-```bash
-# Application logs
-docker logs campus_api
-
-# ALB Access Logs (CloudWatch)
-aws logs tail /aws/elasticloadbalancing/campus-marketplace-alb --follow
-
-# System logs
-journalctl -u docker -f
-```
-
-#### Metrics to Monitor
-- **ALB Metrics**: Request count, response time, error rates
-- **EC2 Metrics**: CPU utilization, memory usage, network I/O
-- **RDS Metrics**: Database connections, query latency, storage usage
-- **Application Metrics**: Custom business metrics via Spring Boot Actuator
-
-### Troubleshooting
-
-#### Common Issues
-
-**ALB Health Check Failures**:
-```bash
-# Check application health
-curl http://localhost:8080/api/health
-
-# Check target group health
-aws elbv2 describe-target-health --target-group-arn your-target-group-arn
-```
-
-**Database Connection Issues**:
-```bash
-# Test database connectivity from EC2
-mysql -h your-rds-endpoint -u admin -p campusMarket
-
-# Check security group rules
-aws ec2 describe-security-groups --group-ids your-rds-sg-id
-```
-
-**Container Deployment Issues**:
-```bash
-# Check container logs
-docker logs campus_api
-
-# Check container status
-docker ps -a
-
-# Restart container
-docker restart campus_api
-```
-
-### Scaling Considerations
-
-#### Horizontal Scaling
-- Add more EC2 instances to target group
-- Use Auto Scaling Groups for automatic scaling
-- Implement session affinity if needed
-
-#### Vertical Scaling
-- Upgrade EC2 instance types
-- Increase RDS instance size
-- Optimize application performance
-
-#### Database Scaling
-- Read replicas for read-heavy workloads
-- Connection pooling
-- Query optimization and indexing
 
 ### Documentation
 
 - **[Production Deployment Guide](backend/PRODUCTION_DEPLOYMENT.md)** - Complete deployment checklist
-- **[Runbook](backend/RUNBOOK.md)** - Operations and troubleshooting guide
 - **[Backup & Rollback](backend/BACKUP_ROLLBACK.md)** - Backup procedures and rollback steps
 - **[API Documentation](API_DOCUMENTATION.md)** - Detailed API specifications
 - **[Testing Guide](backend/TESTING.md)** - Comprehensive testing documentation
@@ -739,43 +392,6 @@ k6 run --vus 50 --duration 2m backend/scripts/load-tests/k6-load-test.js
 # BASE_URL=https://your-alb-url.amazonaws.com k6 run backend/scripts/load-tests/k6-smoke-test.js
 ```
 
-#### Demo Script
-```bash
-./backend/scripts/demo-script.sh
-```
-
-## ⚠️ CRITICAL: Database Isolation Issue Fixed
-
-**Problem**: Integration tests were running against the PRODUCTION database and deleting all data with cleanup scripts.
-
-**Root Cause**: 
-- Tests configured to use production RDS instead of isolated test database
-- `@Sql(cleanup.sql)` runs before/after each test, truncating ALL tables
-- No Testcontainers or database isolation implemented
-
-**Solution Applied**:
-- ✅ **Fixed**: Integration tests now use Testcontainers with isolated MySQL instances
-- ✅ **Created**: `reset-demo.sh` script to restore demo data via API
-- ✅ **Added**: Comprehensive demo data script for presentation
-
-**To restore demo data after test runs**:
-```bash
-cd backend
-./scripts/reset-demo.sh
-```
-
-## 📊 Monitoring
-
-### Health Check
-```bash
-# Quick health check
-curl http://your-domain/api/health
-
-# Comprehensive health check script
-cd backend/scripts
-./health-check.sh local    # For local development
-./health-check.sh prod     # For production ALB
-```
 
 ### Logs
 ```bash
@@ -800,32 +416,9 @@ journalctl -u docker -f
 git pull
 
 # Deploy updates
-cd backend
-./scripts/deploy.sh
+Follow deployment doc
 ```
 
-### Reset Demo Data
-```bash
-./backend/scripts/reset-demo.sh
-```
-
-### Docker Management
-```bash
-# View running containers
-docker ps
-
-# View all containers
-docker ps -a
-
-# Restart application
-docker restart campus_api
-
-# View logs
-docker logs campus_api
-
-# Clean up unused images
-docker image prune -f
-```
 
 ## Support
 
