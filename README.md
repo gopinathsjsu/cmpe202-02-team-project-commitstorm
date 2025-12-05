@@ -383,7 +383,6 @@ Contains UI/UX design artifacts:
 - User interface wireframes
 - User experience mockups
 - Design system documentation
-<img width="1001" height="862" alt="image" src="https://github.com/user-attachments/assets/b4522018-4319-465b-a6f8-f9409b35ff45" />
 
 
 ## License
