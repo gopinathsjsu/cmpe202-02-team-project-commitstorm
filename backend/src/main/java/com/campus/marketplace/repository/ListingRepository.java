@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository for Listing entity with filters and paging queries.
@@ -70,4 +71,8 @@ public interface ListingRepository extends JpaRepository<Listing, String> {
         @Param("status") Listing.ListingStatus status,
         Pageable pageable
     );
+    
+    /** Get listing by id with seller eagerly loaded. */
+    @Query("SELECT l FROM Listing l LEFT JOIN FETCH l.seller WHERE l.id = :id")
+    Optional<Listing> findByIdWithSeller(@Param("id") String id);
 }

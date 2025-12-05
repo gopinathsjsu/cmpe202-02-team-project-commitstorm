@@ -52,6 +52,16 @@ public class ListingService {
     }
     
     /**
+     * Get listing by id with seller eagerly loaded.
+     * Use this when you need to access seller information.
+     * @param id listing id
+     * @return Optional listing with seller loaded
+     */
+    public Optional<Listing> getListingByIdWithSeller(String id) {
+        return listingRepository.findByIdWithSeller(id);
+    }
+    
+    /**
      * List all listings.
      * @return list of listings
      */
