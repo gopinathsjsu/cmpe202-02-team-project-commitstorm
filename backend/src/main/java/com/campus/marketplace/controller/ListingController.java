@@ -2,6 +2,7 @@ package com.campus.marketplace.controller;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,11 +66,24 @@ public class ListingController {
     
     // Helper method to get user ID from JWT token
     private String getUserIdFromToken(String authHeader) {
-        String token = authHeader.substring(7);
-        String email = jwtUtil.extractUsername(token);
-        return userService.getUserByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email))
-                .getId();
+        if (authHeader == null || authHeader.length() < 7 || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Invalid authorization header");
+        }
+        try {
+            String token = authHeader.substring(7);
+            String email = jwtUtil.extractUsername(token);
+            if (email == null || email.isEmpty()) {
+                throw new RuntimeException("Invalid token: email not found");
+            }
+            return userService.getUserByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found with email: " + email))
+                    .getId();
+        } catch (Exception e) {
+            if (e instanceof RuntimeException) {
+                throw e;
+            }
+            throw new RuntimeException("Failed to extract user ID from token: " + e.getMessage(), e);
+        }
     }
     
     /**
@@ -401,11 +415,34 @@ public class ListingController {
             @RequestParam Listing.ListingStatus status,
             @RequestHeader("Authorization") String authHeader) {
         try {
-            String userId = getUserIdFromToken(authHeader);
+            // Validate auth header
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
             
-            // Check if listing exists
-            Listing listing = listingService.getListingById(id)
-                    .orElseThrow(() -> new RuntimeException("Listing not found"));
+            String userId;
+            try {
+                userId = getUserIdFromToken(authHeader);
+            } catch (RuntimeException e) {
+                // Token/user validation errors should return 401, not 404
+                if (e.getMessage() != null && (e.getMessage().contains("Invalid") || e.getMessage().contains("not found"))) {
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+                }
+                throw e;
+            }
+            
+            // Check if listing exists with seller eagerly loaded
+            Optional<Listing> listingOpt = listingService.getListingByIdWithSeller(id);
+            if (listingOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            Listing listing = listingOpt.get();
+            
+            // Check if seller exists
+            if (listing.getSeller() == null) {
+                throw new RuntimeException("Listing seller information is missing");
+            }
             
             // Check if user is admin
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -428,9 +465,16 @@ public class ListingController {
             Listing updatedListing = listingService.updateListingStatus(id, status);
             return ResponseEntity.ok(new ListingDTO(updatedListing));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            // Log the error for debugging
+            System.err.println("Error updating listing status: " + e.getMessage());
+            e.printStackTrace();
+            // Re-throw to let GlobalExceptionHandler handle it with proper error response
+            throw e;
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            // Log unexpected errors
+            System.err.println("Unexpected error updating listing status: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to update listing status: " + e.getMessage(), e);
         }
     }
     
@@ -446,11 +490,21 @@ public class ListingController {
             @PathVariable String id,
             @RequestHeader("Authorization") String authHeader) {
         try {
+            // Validate auth header
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            
             String userId = getUserIdFromToken(authHeader);
             
-            // Check if listing exists
-            Listing listing = listingService.getListingById(id)
-                    .orElseThrow(() -> new RuntimeException("Listing not found"));
+            // Check if listing exists with seller eagerly loaded
+            Listing listing = listingService.getListingByIdWithSeller(id)
+                    .orElseThrow(() -> new RuntimeException("Listing not found with id: " + id));
+            
+            // Check if seller exists
+            if (listing.getSeller() == null) {
+                throw new RuntimeException("Listing seller information is missing");
+            }
             
             // Check if user is admin or owns the listing
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
